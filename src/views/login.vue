@@ -1,0 +1,129 @@
+<template>
+    <div class="login">
+        <el-form ref="loginRef" :rules="loginRules" label-width="auto" :model="loginForm" style="max-width: 600px" class="login-form">
+            <h1>后端登录系统</h1>
+            <el-form-item label="账号" prop="username">
+                <el-input placeholder="账号" v-model="loginForm.username">
+                    <template #prefix>
+                        <el-icon><User /></el-icon>
+                    </template>
+                </el-input>
+            </el-form-item>
+            <el-form-item label="密码" prop="password" >
+                <el-input placeholder="密码" v-model="loginForm.password" show-password>
+                    <template #prefix>
+                        <el-icon><Lock /></el-icon>
+                    </template>
+                </el-input>
+            </el-form-item>
+                <el-checkbox v-model="loginForm.remeberMe" label="记住密码" size="large" />
+            <div class="login-btn">
+                <el-button type="primary" @click.prevent="login">登录</el-button>
+                <el-button type="success" @click="getuerlist">获取用户信息列表</el-button>
+            </div>
+
+        </el-form>
+
+    </div>
+
+</template>
+
+<script setup>
+import request from '@/utils/request';
+import { ref } from 'vue';
+import qs from 'qs';
+import Cookies from 'js-cookie';
+import {encrypt,decrypt} from '@/utils/jsencrypt'
+import router from '@/router/index';
+const loginForm = ref({
+    username: '',
+    password: '',
+    remeberMe:false,
+})
+const loginRef = ref(null)
+
+const loginRules = {
+    username: [{ required: true, message: '请输入账号', trigger: 'blur' },],
+    password: [{ required: true, message: '请输入密码', trigger: 'blur' },]
+}
+const login = () => {
+   loginRef.value.validate(async (valid) => {
+        if (valid) {
+            let data = await request.post('user/login/?'+qs.stringify(loginForm.value))
+            // console.log(data)
+            if (data.code == 200) {
+                // console.log('登录成功,token:', data.token)++++++++++
+                window.sessionStorage.setItem('token', data.token)
+                window.sessionStorage.setItem('username', JSON.stringify(data.user))
+                if(loginForm.value.remeberMe){
+                   Cookies.set('username',loginForm.value.username,{expires:30})//设置cookie,有效期30天
+                   Cookies.set('password',encrypt(loginForm.value.password),{expires:30})
+                   Cookies.set('remeberMe',loginForm.value.remeberMe,{expires:30})
+                }else{
+                    Cookies.remove('username')
+                    Cookies.remove('password')
+                    Cookies.remove('remeberMe')
+                }
+            //  router.replace('/')
+            }
+            else {
+                console.log('登录失败')
+            }
+        }
+    })
+}
+function getCookie() {
+    const username = Cookies.get('username')
+    const password = Cookies.get('password')
+    const remeberMe = Cookies.get('remeberMe')
+    loginForm.value={
+        username:username===undefined?loginForm.value.username:username,
+        password:password===undefined?loginForm.value.password:decrypt(password),
+        remeberMe:remeberMe===undefined?false:Boolean(remeberMe)
+   }
+   console.log(loginForm.value)
+}
+getCookie()
+
+const getuerlist = async () => {
+    let data = await request.get('user/test/')
+    // console.log(data)
+    if (data.code == 200) {
+        // console.log('获取用户列表成功,用户列表:' + data)
+    }
+    else {
+        console.log('获取用户列表失败')
+    }
+}
+
+</script>
+
+<style scoped lang="scss">
+.login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    // width: 800px;
+    height: 100vh;
+    // flex-direction: column;
+
+    h1 {
+        font-size: 30px;
+        margin-bottom: 20px;
+    }
+
+    .login-form {
+        width: 400px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+
+        // margin:auto;
+        .login-btn {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    }
+}
+</style>
