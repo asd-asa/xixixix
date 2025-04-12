@@ -1,4 +1,6 @@
 <script setup>
+import { ref } from 'vue';
+const select = ref(''); // 选择的值
 
 </script>
 
@@ -20,6 +22,7 @@
 
 <style scoped lang="scss">
 .ColumnSelect {
+    // margin-top: 50px; /* 导航栏的高度 */
     width: 100%;
     height: 68px;
     background-color: #fff;

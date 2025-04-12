@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref,defineProps } from 'vue';
-import { getWallpapers,getWallpapersPage } from '@/api/wallpapers';
+// import { getWallpapers,getWallpapersPage } from '@/api/wallpapers';
 
 // const wallpapers = ref([]);
 
@@ -17,7 +17,7 @@ import { getWallpapers,getWallpapersPage } from '@/api/wallpapers';
 // 获取分页数据
 defineProps({
     wallpapers: {
-        type: String,
+        type: Array,
         required: true
     },
     total:{

@@ -8,7 +8,7 @@ import Like from '@/views/like/index.vue'
 import Search from '@/views/search/index.vue'
 import Setting from '@/views/setting/index.vue'
 import About from '@/views/about/index.vue'
-
+import My from '@/views/my/index.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -35,6 +35,10 @@ const router = createRouter({
     {
       path: '/setting',
       component: Setting,
+    },
+    {
+      path: '/my',
+      component: My,
     }
   ]
 })
