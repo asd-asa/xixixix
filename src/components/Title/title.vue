@@ -45,7 +45,7 @@ const titles = ref([]);
 const getTitle = async () => {
     const res = await getTitles();
     titles.value = res;
-    console.log(res);
+    // console.log(res);
 };
 onMounted(() => {
     getTitle();

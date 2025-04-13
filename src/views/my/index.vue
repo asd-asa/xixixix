@@ -5,31 +5,27 @@ import { uploadWallpapers } from '@/api/wallpapers'
 
 const selectedFiles = ref([]); // 存储选中的文件
 const category = ref(''); // 分类字段
-// 处理文件选择
-const onFileChange = (event) => {
-    selectedFiles.value = Array.from(event.target.files); // 将 FileList 转为数组
-    console.log('选中的文件:', selectedFiles.value);
-};
+const title = ref(''); // 图片名称
+const description = ref(''); // 图片描述
+const tags = ref([]); // 图片标签
 // 图片预览相关
 const dialogVisible = ref(false);
 const previewImage = ref('');
 // 处理文件选择
-// const handleFileChange = (file, fileList) => {
-//     selectedFiles.value = fileList.map((item) => ({
-//         name: item.name,
-//         size: item.size,
-//         status: item.status,
-//         percentage: item.percentage,
-//         url: item.url || URL.createObjectURL(item.raw), // 使用 url 或生成的 URL
-//         raw: item.raw, // 原始文件对象
-//         image: item.url || URL.createObjectURL(item.raw), // 预览图片
-//     }));
-//     console.log('选中的文件:', selectedFiles.value);
-// };
+const handleFileChange = (file, fileList) => {
+    selectedFiles.value = fileList.map((item) => ({
+        name: item.name,
+        size: item.size,
+        status: item.status,
+        percentage: item.percentage,
+        url: item.url || URL.createObjectURL(item.raw), // 使用 url 或生成的 URL
+        raw: item.raw, // 原始文件对象
+    }));
+    console.log('选中的文件:', selectedFiles.value);
+};
 // 处理文件移除
 const handleFileRemove = (file, fileList) => {
     selectedFiles.value = fileList; // 更新选中的文件列表
-    console.log('移除的文件:', file, '剩余文件:', fileList);
     // 更新预览图片
     if (previewImage.value === file.url || previewImage.value === file.raw.url) {
         previewImage.value = ''; // 清空预览图片
@@ -42,6 +38,16 @@ const handleFilePreview = (file) => {
     dialogVisible.value = true;
 };
 
+// 清空表单和状态
+const resetForm = () => {
+    selectedFiles.value = [];
+    category.value = '';
+    title.value = '';
+    description.value = '';
+    tags.value = [];
+    dialogVisible.value = false;
+    previewImage.value = '';
+};
 // 上传文件
 const handleFileUpload = async () => {
     if (selectedFiles.value.length === 0) {
@@ -51,15 +57,18 @@ const handleFileUpload = async () => {
 
     const formData = new FormData();
     selectedFiles.value.forEach((file) => {
-        formData.append('images', file);
+        formData.append('images', file.raw); // 使用原始文件对象
     });
-    formData.append('category', category.value); // 添加分类字段
-
+    // 添加其他字段
+    formData.append('category', category.value || '未分类'); // 分类字段
+    formData.append('title', title.value || '未命名'); // 图片标题字段
+    formData.append('description', description.value || ''); // 图片描述字段
+    formData.append('tags', tags.value.join(',') || ''); // 图片标签字段（多个标签用逗号分隔）
     try {
         const response = await uploadWallpapers(formData);
         console.log('上传成功:', response);
         // 处理上传成功后的逻辑，比如清空文件选择框、显示提示等
-        selectedFiles.value = []; // 清空选中的文件
+        resetForm(); // 调用清空表单和状态的函数
     } catch (error) {
         console.error('上传失败:', error);
     }
@@ -74,20 +83,31 @@ const resetUpload = () => {
     <div class="upload-wallpapers">
         <el-form style="min-width: 400px" status-icon label-width="auto" class="demo-ruleForm">
             <el-form-item label="图片名称">
-                <el-input type="type" autocomplete="off" />
+                <el-input  type="text"  autocomplete="off" v-model="title"/>
             </el-form-item>
             <el-form-item label="图片分类">
-                <el-select filterable placeholder="Select" style="width: 240px">
-                    <el-option v-for="item in 6" />
+                <el-select  
+                 allow-create
+                 clearable 
+                 v-model="category" 
+                 filterable 
+                 placeholder="图片分类" >
+                    <el-option v-for="item in 6" :key="item" :label="'分类' + item" :value="'分类' + item" />
                 </el-select>
             </el-form-item>
             <el-form-item label="图片描述">
-                <el-input type="password" autocomplete="off" />
+                <el-input type="text" autocomplete="off" v-model="description" placeholder="图片描述" />
             </el-form-item>
             <el-form-item label="图片标签">
-                <el-select multiple filterable allow-create default-first-option :reserve-keyword="false"
-                    placeholder="Choose tags for your article" style="width: 240px">
-                    <el-option v-for="item in 6" />
+                <el-select 
+                v-model="tags"
+                multiple 
+                filterable 
+                allow-create 
+                default-first-option 
+                :reserve-keyword="false"
+                placeholder="图片标签" >
+                <el-option v-for="item in 6" :key="item" :label="'标签' + item" :value="'标签' + item" />
                 </el-select>
             </el-form-item>
             <el-form-item label="图片预览">
@@ -114,19 +134,27 @@ const resetUpload = () => {
                 </el-dialog>
 
             </el-form-item>
-            <el-form-item>
+            <div class="upload-wallpapers__btns">
+                <el-form-item>
                 <el-button type="primary" @click="handleFileUpload">上传图片</el-button>
-                <el-button @click="resetUpload">重置</el-button>
-            </el-form-item>
+                <el-button type="danger" @click="resetUpload" style="margin-left: 60px;" >重置</el-button>
+                </el-form-item>
+            </div>
+            
         </el-form>
-
-        <form @submit.prevent="handleFileUpload">
-    <input type="file" name="images" multiple @change="onFileChange">
-    <input type="text" name="category" v-model="category" placeholder="请输入分类">
-    <button type="submit">上传</button>
-         </form>
     </div>
 
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.upload-wallpapers{
+    margin-top: 20px;
+    .upload-wallpapers__btns{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 40px;
+    }
+}
+
+</style>

@@ -13,6 +13,7 @@ export function uploadWallpapers(data) {
     return upload('wallpapers/bulk-upload/', data)
 }
 //壁纸分页
-export const getWallpapersPage = (page, pageSize) => {
-    return get('wallpapers/wallpapers/page', { page, pageSize });
+export const getWallpapersPage = (category,page, pageSize,resolution) => {
+    return get('wallpapers/wallpapers/page', { resolution,category,page, pageSize });
 };
+

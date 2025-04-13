@@ -1,35 +1,13 @@
 <script setup>
-import { onMounted, ref,defineProps } from 'vue';
-// import { getWallpapers,getWallpapersPage } from '@/api/wallpapers';
+import { defineProps } from 'vue';
 
-// const wallpapers = ref([]);
-
-// const fetchWallpapers = async () => {
-//     try {
-//         const response = await getWallpapersPage();
-//         wallpapers.value = response.results;
-//         console.log(response);
-        
-//     } catch (error) {
-//         console.error('Error fetching wallpapers:', error);
-//     }
-// };
-// 获取分页数据
-defineProps({
+// 接收父组件传递的数据
+const props = defineProps({
     wallpapers: {
         type: Array,
-        required: true
-    },
-    total:{
-        type: Number,
-        required: true
+        required: true,
     }
-})
-
-// onMounted(() => {
-//     fetchWallpapers();
-// });
-
+});
 </script>
 
 <template>
@@ -37,7 +15,8 @@ defineProps({
         <div class="container">
             <div class="ContentList">
                 <div class="Content" v-for="item in wallpapers" :key="item.id">
-                    <img v-img-lazy="item.image"  :alt="item.title" />
+                    <img v-img-lazy="item.image" :alt="item.title" />
+                    <p>{{ item.title }}</p>
                 </div>
             </div>
         </div>
@@ -50,30 +29,29 @@ defineProps({
     width: 100%;
     background-color: #fff;
     padding: 0 20px;
-    .ContentList{
+
+    .ContentList {
         padding: 0 20px;
         width: 1165px;
         display: grid;
-        grid-template-columns:repeat(4,1fr);
+        grid-template-columns: repeat(4, 1fr);
         grid-gap: 10px;
-        .Content {
-        width: 100%;
-        height: 185px;
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-        // display: flex;
-        // justify-content: center;
-        // align-items: center;
 
-        img {
+        .Content {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: 185px;
+            background-color: #fff;
             border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 10px;
+            }
         }
-    }
     }
 }
 </style>
