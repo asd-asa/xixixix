@@ -85,7 +85,7 @@ const handleResolutionChange = () => {
     margin-bottom: 30px;
 
     .ColumnSelectTitle {
-        width: 1165px;
+        width: 1200px;
         height: 68px;
         display: flex;
         flex-direction: row;

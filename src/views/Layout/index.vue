@@ -28,7 +28,7 @@ const total = ref(0); // 总条数
 const selectedCategory = ref(''); // 当前选择的分类
 const selectedResolution = ref(''); // 当前选择的分辨率
 const currentPage = ref(1); // 当前页码
-const pageSize = ref(12); // 每页大小
+const pageSize = ref(9); // 每页大小
 
 // 获取壁纸数据
 const fetchWallpapers = async () => {

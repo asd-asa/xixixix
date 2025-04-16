@@ -7,7 +7,7 @@ const selectedFiles = ref([]); // 存储选中的文件
 const category = ref(''); // 分类字段
 const title = ref(''); // 图片名称
 const description = ref(''); // 图片描述
-const tags = ref([]); // 图片标签
+const tags = ref<string[]>([]); // 图片标签（数组）
 // 图片预览相关
 const dialogVisible = ref(false);
 const previewImage = ref('');
@@ -63,7 +63,7 @@ const handleFileUpload = async () => {
     formData.append('category', category.value || '未分类'); // 分类字段
     formData.append('title', title.value || '未命名'); // 图片标题字段
     formData.append('description', description.value || ''); // 图片描述字段
-    formData.append('tags', tags.value.join(',') || ''); // 图片标签字段（多个标签用逗号分隔）
+    formData.append('tags', JSON.stringify(tags.value)); // 将标签数组转换为 JSON 字符串
     try {
         const response = await uploadWallpapers(formData);
         console.log('上传成功:', response);
