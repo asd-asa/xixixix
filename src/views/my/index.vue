@@ -1,8 +1,12 @@
 <script setup lang="ts">
 //上传多张图片
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { uploadWallpapers } from '@/api/wallpapers'
+import { getClassifyDetail } from '@/api/title'
 
+const categories = ref([]); // 分类选项
+const classifyDetail = ref([]); // 分类详情数据
+const classifyTags = ref([]); // 分类标签
 const selectedFiles = ref([]); // 存储选中的文件
 const category = ref(''); // 分类字段
 const title = ref(''); // 图片名称
@@ -11,6 +15,24 @@ const tags = ref<string[]>([]); // 图片标签（数组）
 // 图片预览相关
 const dialogVisible = ref(false);
 const previewImage = ref('');
+// 获取分类详情数据
+const fetchClassifyDetail = async () => {
+    try {
+        const response = await getClassifyDetail(); 
+        classifyDetail.value = response; 
+        categories.value = classifyDetail.value.map((item) => ({
+            label: item.name, 
+            value: item.name, 
+        })); 
+        classifyTags.value = classifyDetail.value.map((item) => ({
+            label: item.tags, 
+            value: item.tags, 
+        }));
+        
+    } catch (error) {
+        console.error('获取分类详情数据失败:', error); // 处理错误
+    }
+};
 // 处理文件选择
 const handleFileChange = (file, fileList) => {
     selectedFiles.value = fileList.map((item) => ({
@@ -77,6 +99,9 @@ const handleFileUpload = async () => {
 const resetUpload = () => {
     selectedFiles.value = [];
 };
+onMounted(() => {
+    fetchClassifyDetail(); // 组件挂载时获取分类详情数据
+});
 </script>
 
 <template>
@@ -92,7 +117,7 @@ const resetUpload = () => {
                  v-model="category" 
                  filterable 
                  placeholder="图片分类" >
-                    <el-option v-for="item in 6" :key="item" :label="'分类' + item" :value="'分类' + item" />
+                    <el-option v-for="item in categories"  :label="item.label" :value="item.value" />
                 </el-select>
             </el-form-item>
             <el-form-item label="图片描述">
@@ -107,7 +132,7 @@ const resetUpload = () => {
                 default-first-option 
                 :reserve-keyword="false"
                 placeholder="图片标签" >
-                <el-option v-for="item in 6" :key="item" :label="'标签' + item" :value="'标签' + item" />
+                <el-option v-for="item in classifyTags"  :label="item.label" :value="item.value" />
                 </el-select>
             </el-form-item>
             <el-form-item label="图片预览">

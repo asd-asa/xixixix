@@ -1,19 +1,37 @@
 <script setup>
-import { ref,defineEmits } from 'vue';
+import { ref,defineEmits,onMounted } from 'vue';
+import { getClassifyDetail } from '@/api/title'
+
+const classifyDetail = ref([]); // 分类详情数据
+
 // 分类选项
-const categories = ref([
-    { label: '风景', value: '风景' },
-    { label: '动漫', value: '动漫' },
-    { label: '动物', value: '动物' },
-]);
+const categories = ref([]);
+
 // 分辨率选项（按区间分类）
-const resolutions = ref([
-    { label: '1K', value: '1K' }, // 1K 分辨率
-    { label: '2K', value: '2K' }, // 2K 分辨率
-    { label: '4K', value: '4K' }, // 4K 分辨率
-    { label: '8K', value: '8K' }, // 8K 分辨率
-    { label: '其他', value: '其他' }, // 其他分辨率
-]);
+const resolutions = ref([]);
+console.log('分类选项:', resolutions.value); // 打印获取到的分类选项
+
+// 获取分类详情数据
+const fetchClassifyDetail = async () => {
+    try {
+        const response = await getClassifyDetail(); 
+        classifyDetail.value = response; 
+        categories.value = classifyDetail.value.map((item) => ({
+            label: item.name, 
+            value: item.name, 
+        })); 
+        resolutions.value = classifyDetail.value
+        .map((item) => ({
+            label: item.resolution, 
+            value: item.resolution, 
+        }))
+        .filter((item) => item.label && item.value); 
+        console.log('分类详情数据:', resolutions.value); // 打印获取到的分类详情数据
+        
+    } catch (error) {
+        console.error('获取分类详情数据失败:', error); // 处理错误
+    }
+};
 // 选中的分辨率
 const selectedResolution = ref('');
 // 当前选择的分类
@@ -28,6 +46,9 @@ const handleResolutionChange = () => {
     emit('resolutionChange', selectedResolution.value); // 触发事件，将分辨率数据传递给父组件
 
 };
+onMounted(() => {
+    fetchClassifyDetail(); // 组件挂载时获取分类详情数据
+});
 </script>
 
 <template>
