@@ -10,9 +10,16 @@ const http = axios.create({
   })
 
 // 添加请求拦截器
-http.interceptors.request.use(function (config) {
-    config.headers.AUTHORIZATION = window.sessionStorage.getItem('token')
+http.interceptors.request.use(
+    function (config) {
+    // config.headers.AUTHORIZATION = window.sessionStorage.getItem('token')
     // config.headers.AUTHORIZATION = window.localStorage.getItem('token')
+     const token = window.localStorage.getItem('token'); // 从 localStorage 获取 token
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`; // 设置 Authorization 头
+        } else {
+            console.warn('未找到 token，可能用户未登录');
+        }
     return config;
   }, function (error) {
     // 对请求错误做些什么

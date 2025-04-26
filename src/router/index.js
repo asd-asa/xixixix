@@ -9,6 +9,7 @@ import Search from '@/views/search/index.vue'
 import Setting from '@/views/setting/index.vue'
 import About from '@/views/about/index.vue'
 import My from '@/views/my/index.vue'
+import Register from '@/views/Register/index.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -39,7 +40,12 @@ const router = createRouter({
     {
       path: '/my',
       component: My,
-    }
+    },
+    {
+      path: '/register',
+      component: Register,
+    },
+
   ]
 })
 

@@ -1,7 +1,7 @@
 <template>
     <div class="login">
         <el-form ref="loginRef" :rules="loginRules" label-width="auto" :model="loginForm" style="max-width: 600px" class="login-form">
-            <h1>后端登录系统</h1>
+            <h1>用户登录</h1>
             <el-form-item label="账号" prop="username">
                 <el-input placeholder="账号" v-model="loginForm.username">
                     <template #prefix>
@@ -19,13 +19,12 @@
                 <el-checkbox v-model="loginForm.remeberMe" label="记住密码" size="large" />
             <div class="login-btn">
                 <el-button type="primary" @click.prevent="login">登录</el-button>
-                <el-button type="success" @click="getuerlist">获取用户信息列表</el-button>
+                <el-button type="success" @click="goToRegister">注册</el-button>
             </div>
 
         </el-form>
 
     </div>
-
 </template>
 
 <script setup>
@@ -50,11 +49,8 @@ const login = () => {
    loginRef.value.validate(async (valid) => {
         if (valid) {
             let data = await request.post('user/login/?'+qs.stringify(loginForm.value))
-            // console.log(data)
             if (data.code == 200) {
-                // console.log('登录成功,token:', data.token)++++++++++
-                window.sessionStorage.setItem('token', data.token)
-                window.sessionStorage.setItem('username', JSON.stringify(data.user))
+                window.localStorage.setItem('token', data.token)
                 if(loginForm.value.remeberMe){
                    Cookies.set('username',loginForm.value.username,{expires:30})//设置cookie,有效期30天
                    Cookies.set('password',encrypt(loginForm.value.password),{expires:30})
@@ -64,7 +60,7 @@ const login = () => {
                     Cookies.remove('password')
                     Cookies.remove('remeberMe')
                 }
-            //  router.replace('/')
+             router.replace('/')
             }
             else {
                 console.log('登录失败')
@@ -85,16 +81,9 @@ function getCookie() {
 }
 getCookie()
 
-const getuerlist = async () => {
-    let data = await request.get('user/test/')
-    // console.log(data)
-    if (data.code == 200) {
-        // console.log('获取用户列表成功,用户列表:' + data)
-    }
-    else {
-        console.log('获取用户列表失败')
-    }
-}
+const goToRegister = () => {
+    router.push('/register'); 
+};
 
 </script>
 

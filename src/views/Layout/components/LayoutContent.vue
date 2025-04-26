@@ -1,32 +1,81 @@
-<script setup>
-import { Back, Close, Delete, Download, Right } from '@element-plus/icons-vue';
-import { ref, defineProps } from 'vue';
-
+<script setup lang="ts">
+import {
+    Back,
+    DArrowRight,
+    Download,
+    Refresh,
+    RefreshLeft,
+    RefreshRight,
+    Right,
+    ZoomIn,
+    ZoomOut,
+} from '@element-plus/icons-vue';
+import { ref, defineProps, watch } from 'vue';
+import type { ImageInstance } from 'element-plus'
 // 接收父组件传递的数据
-const props = defineProps({
-    wallpapers: {
-        type: Array,
-        required: true,
-    }
-});
+// 定义 props 类型
+
+
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
 const popupContent = ref(''); // 弹窗内容（标签名）
 const popupPosition = ref({ x: 0, y: 0 }); // 弹窗位置
-
+const srcList = ref([]); // 存储图片地址列表
+const imageRef = ref<ImageInstance | null>(null); // 确保类型正确
 // 全屏预览相关状态
 const showPreview = ref(false); // 是否显示全屏预览
 const previewImage = ref(''); // 当前预览的图片
+interface Wallpaper {
+    id: number;
+    image: string;
+    title: string;
+    description?: string; // 可选属性
+    tags?: string[]; // 可选属性
+}
+const props = defineProps<{
+    wallpapers: Wallpaper[];
+}>();
+watch(
+    () => props.wallpapers,
+    (newWallpapers) => {
+        // 直接从 props 初始化 srcList
+        srcList.value = newWallpapers.map((item) => item.image);
+    },
+    { immediate: true }
+);
+const preloadImage = (url: string) => {
+    const img = new Image();
+    img.src = url;
+};
 // 显示全屏预览
-const gotoImg = (image) => {
-    previewImage.value = image; // 设置当前预览的图片
+const gotoImg = (image: string) => {
+    if (!image) {
+        console.error('预览图片路径为空');
+        return;
+    }
+
+    // 找到当前图片在 srcList 中的索引
+    const currentIndex = srcList.value.indexOf(image);
+
+    if (currentIndex === -1) {
+        console.error('图片未找到:', image);
+        return;
+    }
+
+    // 预加载下一张图片
+    const nextIndex = (currentIndex + 1) % srcList.value.length;
+    preloadImage(srcList.value[nextIndex]);
+    // 动态调整 srcList 的顺序
+    srcList.value = [
+        ...srcList.value.slice(currentIndex),
+        ...srcList.value.slice(0, currentIndex),
+    ];
+
+    // 设置当前预览的图片
+    previewImage.value = image;
     showPreview.value = true; // 显示全屏预览
 };
-// 关闭全屏预览
-const closePreview = () => {
-    showPreview.value = false; // 隐藏全屏预览
-    previewImage.value = ''; // 清空预览图片
-};
+
 // 显示弹窗
 const handleMouseEnter = (event, label) => {
     popupContent.value = label; // 设置弹窗内容
@@ -37,6 +86,38 @@ const handleMouseEnter = (event, label) => {
 // 隐藏弹窗
 const handleMouseLeave = () => {
     showPopup.value = false; // 隐藏弹窗
+};
+
+const download = (index) => {
+
+    const url = srcList.value[index];
+    if (!url) {
+        console.error('图片 URL 无效:', url);
+        return;
+    }
+    const suffix = url.slice(url.lastIndexOf('.'));
+    const filename = Date.now() + suffix;
+
+    fetch(url)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP 错误: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then((blob) => {
+            const blobUrl = URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            URL.revokeObjectURL(blobUrl);
+            link.remove();
+        })
+        .catch((error) => {
+            console.error('下载失败:', error);
+        });
 };
 </script>
 
@@ -63,17 +144,38 @@ const handleMouseLeave = () => {
                             <button @click="gotoImg(item.image)">预览</button>
                         </div>
                     </div>
-                    <div v-if="showPreview" class="PreviewOverlay">
-                        <img :src="previewImage" />
-                        <el-button :icon="Close" class="image-close" @click="closePreview" />
-                        <div class="image-bar">
-                            <el-button-group class="image-bar__btns">
-                                <el-button :icon="Back" />
-                                <el-button :icon="Download" />
-                                <el-button :icon="Right" />
-                            </el-button-group>
-                        </div>
-                    </div>
+
+                </div>
+                <div v-if="showPreview" class="PreviewOverlay">
+                    <el-image-viewer v-if="showPreview" :url-list="srcList" 
+                        @close="showPreview = false" show-progress>
+                        <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
+                            <el-icon @click="setActiveItem(srcList.length - 1)">
+                                <DArrowRight />
+                            </el-icon>
+                            <el-icon @click="actions('zoomOut')">
+                                <ZoomOut />
+                            </el-icon>
+                            <el-icon @click="actions('zoomIn', { enableTransition: false, zoomRate: 2 })">
+                                <ZoomIn />
+                            </el-icon>
+                            <el-icon @click="
+                                actions('clockwise', { rotateDeg: 180, enableTransition: false })
+                                ">
+                                <RefreshRight />
+                            </el-icon>
+                            <el-icon @click="actions('anticlockwise')">
+                                <RefreshLeft />
+                            </el-icon>
+                            <el-icon @click="reset">
+                                <Refresh />
+                            </el-icon>
+                            <el-icon @click="download(activeIndex)">
+                                <Download />
+                            </el-icon>
+                        </template>
+                    </el-image-viewer>
+
                 </div>
             </div>
         </div>
@@ -241,8 +343,8 @@ const handleMouseLeave = () => {
         align-items: center;
         z-index: 1000;
 
-        
-        img {
+
+        .Previewimg {
             max-width: 90%;
             max-height: 90%;
             object-fit: contain;
@@ -251,7 +353,7 @@ const handleMouseLeave = () => {
         }
 
         .image-close {
-            width: 40px;    
+            width: 40px;
             height: 40px;
             position: absolute;
             top: 20px;
@@ -263,11 +365,17 @@ const handleMouseLeave = () => {
             border: none;
             cursor: pointer;
             z-index: 1001;
+
             &:hover {
                 background-color: #f0f0f0;
                 /* 悬浮时颜色变化 */
                 pointer-events: auto;
                 /* 启用鼠标事件 */
+            }
+
+            &:active {
+                background-color: #d0d0d0;
+                pointer-events: auto;
             }
 
         }

@@ -1,4 +1,5 @@
 <template>
+    <el-scrollbar max-height="1000px">
     <LayoutSelect 
     @categoryChange="handleCategoryChange" 
     @resolutionChange="handleResolutionChange"
@@ -12,7 +13,7 @@
         :page-size="pageSize"
         @update-page="handlePageChange"
     />
-
+  </el-scrollbar>
 </template>
 
 <script setup>

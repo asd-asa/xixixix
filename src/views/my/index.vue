@@ -3,6 +3,7 @@
 import { onMounted, ref } from 'vue'
 import { uploadWallpapers } from '@/api/wallpapers'
 import { getClassifyDetail } from '@/api/title'
+import { ElMessage } from 'element-plus';
 
 const categories = ref([]); // 分类选项
 const classifyDetail = ref([]); // 分类详情数据
@@ -92,8 +93,21 @@ const handleFileUpload = async () => {
         // 处理上传成功后的逻辑，比如清空文件选择框、显示提示等
         resetForm(); // 调用清空表单和状态的函数
     } catch (error) {
-        console.error('上传失败:', error);
+    console.error('上传失败:', error);
+
+    // 检查是否存在 token
+    const token = localStorage.getItem('token'); // 假设 token 存储在 localStorage 中
+    if (!token) {
+        console.warn('用户未登录，跳转到登录页面');
+        // 跳转到登录页面
+        window.location.href = '/login'; // 替换为你的登录页面路径
+        return;
     }
+
+    // 处理其他上传失败的逻辑，比如显示错误提示等
+    console.error('上传失败的详细信息:', error.message || error);
+    ElMessage.error('上传失败，请稍后重试。'); // 显示错误提示
+}
 };
 // 重置上传
 const resetUpload = () => {
