@@ -1,6 +1,9 @@
 import axios from 'axios'
 
+// 本地 
 let baseURL= 'http://localhost:8000/'
+// 线上
+// let baseURL= 'http://47.111.126.28:8000/'
 
 // 创建axios实例
 
@@ -9,33 +12,76 @@ const http = axios.create({
     timeout: 3000
   })
 
+//请求白名单
+const whiteList = ['user/login/','user/register/','wallpapers/wallpapers/page/','title/category-list/'
+    ,'title/category-item/','title/navigation-bar/'
+]
 // 添加请求拦截器
 http.interceptors.request.use(
     function (config) {
-    // config.headers.AUTHORIZATION = window.sessionStorage.getItem('token')
-    // config.headers.AUTHORIZATION = window.localStorage.getItem('token')
-     const token = window.localStorage.getItem('token'); // 从 localStorage 获取 token
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`; // 设置 Authorization 头
-        } else {
-            console.warn('未找到 token，可能用户未登录');
+        // 检查请求 URL 是否在白名单中
+        const isWhiteListed = whiteList.some((path) => config.url.includes(path));
+        if (isWhiteListed) {
+            return config; // 直接返回配置，不添加 Authorization 头
         }
-    return config;
-  }, function (error) {
-    // 对请求错误做些什么
-    return Promise.reject(error);
-  });
+
+        // 如果不在白名单中，检查 token
+        const token = window.localStorage.getItem('token');
+        console.log('token:', token);
+        
+        if (token && token !== 'undefined' && token !== 'null') {
+            config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            console.warn('未找到 token，阻止请求发送');
+            return Promise.reject(new Error('未找到 token，阻止请求发送'));
+        }
+        return config;
+    },
+    function (error) {
+        return Promise.reject(error);
+    }
+);
 
 // 添加响应拦截器
-http.interceptors.response.use(function (response) {
-    // 2xx 范围内的状态码都会触发该函数。
-    // 对响应数据做点什么
-    return response;
-  }, function (error) {
-    // 超出 2xx 范围的状态码都会触发该函数。
-    // 对响应错误做点什么
-    return Promise.reject(error);
-  });
+http.interceptors.response.use(
+    function (response) {
+        return response;
+    },
+    async function (error) {
+        if (error.response && error.response.status === 401) {
+            const refreshToken = window.localStorage.getItem('refresh_token');
+
+            if (refreshToken) {
+                try {
+                    const response = await axios.post(`${baseURL}user/login/`, {
+                        refresh: refreshToken,
+                    });
+
+                    const newAccessToken = response.data.access;
+                    if (newAccessToken) {
+                        window.localStorage.setItem('token', newAccessToken);
+
+                        error.config.headers.Authorization = `Bearer ${newAccessToken}`;
+                        return http(error.config);
+                    } else {
+                        throw new Error('刷新 token 失败，未返回新的 access token');
+                    }
+                } catch (refreshError) {
+                    console.error('刷新 token 失败:', refreshError);
+                    window.localStorage.removeItem('token');
+                    window.localStorage.removeItem('refresh_token');
+                    window.location.href = '/login';
+                }
+            } else {
+                console.warn('未找到 refresh token，跳转到登录页面');
+                window.localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 
 //封装请求
 // get请求

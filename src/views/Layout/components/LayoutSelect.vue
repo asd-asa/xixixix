@@ -9,7 +9,6 @@ const categories = ref([]);
 
 // 分辨率选项（按区间分类）
 const resolutions = ref([]);
-console.log('分类选项:', resolutions.value); // 打印获取到的分类选项
 
 // 获取分类详情数据
 const fetchClassifyDetail = async () => {
@@ -26,7 +25,6 @@ const fetchClassifyDetail = async () => {
             value: item.resolution, 
         }))
         .filter((item) => item.label && item.value); 
-        console.log('分类详情数据:', resolutions.value); // 打印获取到的分类详情数据
         
     } catch (error) {
         console.error('获取分类详情数据失败:', error); // 处理错误

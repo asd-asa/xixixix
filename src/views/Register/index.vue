@@ -39,10 +39,10 @@ const getRegister = async () => {
             username: ruleForm.username,
             password: ruleForm.password,
         });
-        console.log('提交的注册数据:', {
-            username: ruleForm.username,
-            password: ruleForm.password,
-        });
+        // console.log('提交的注册数据:', {
+        //     username: ruleForm.username,
+        //     password: ruleForm.password,
+        // });
         
         // 判断接口返回结果
         if (res.code === 200) {

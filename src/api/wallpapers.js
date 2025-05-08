@@ -14,6 +14,6 @@ export function uploadWallpapers(data) {
 }
 //壁纸分页
 export const getWallpapersPage = (category,page, pageSize,resolution) => {
-    return get('wallpapers/wallpapers/page', { resolution,category,page, pageSize });
+    return get('wallpapers/wallpapers/page/', { resolution,category,page, pageSize });
 };
 

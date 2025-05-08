@@ -20,7 +20,7 @@
 import LayoutSelect from './components/LayoutSelect.vue'
 import LayoutContent from './components/LayoutContent.vue'
 import LayoutFoot from './components/LayoutFoot.vue'
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { getWallpapersPage } from '@/api/wallpapers.js';
 
 
@@ -38,11 +38,14 @@ const fetchWallpapers = async () => {
             selectedCategory.value, currentPage.value, pageSize.value,
             selectedResolution.value  // 传递分辨率参数
         );
-        wallpapers.value = response.results; // 假设后端返回的数据结构中有 `results`
-        total.value = response.count; // 假设后端返回的数据结构中有 `count`
-        console.log('获取壁纸数据成功:', wallpapers.value, total.value);
+        wallpapers.value = response.results;
+        total.value = response.count
     } catch (error) {
         console.error('获取壁纸数据失败:', error);
+        if (error.message === '未找到 token，阻止请求发送') {
+            // 跳转到登录页面或提示用户登录
+            window.location.href = '/login';
+        }
     }
 };
 // 监听分类变化
@@ -54,7 +57,6 @@ const handleCategoryChange = (category) => {
 // 监听分辨率变化
 const handleResolutionChange = (resolution) => {
     selectedResolution.value = resolution;
-    console.log('分辨率变化:', resolution);
     currentPage.value = 1; // 重置页码
     fetchWallpapers();
 };
@@ -64,8 +66,9 @@ const handlePageChange = ({ page, pageSize: newPageSize }) => {
     pageSize.value = newPageSize;
     fetchWallpapers();
 };
-// 初始化加载
-watch([selectedCategory, currentPage, pageSize], fetchWallpapers, { immediate: true });
+onMounted(() => {
+    fetchWallpapers(); 
+});
 </script>
 
 <style lang="scss" scoped >

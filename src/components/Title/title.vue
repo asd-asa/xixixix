@@ -43,9 +43,13 @@ const icons = {
 };
 const titles = ref([]);
 const getTitle = async () => {
-    const res = await getTitles();
-    titles.value = res;
-    // console.log(res);
+    try {
+        const res = await getTitles();
+        titles.value = res;
+    } catch (error) {
+        console.error('获取标题失败:', error.message);
+        // 可以根据需求添加提示或其他逻辑
+    }
 };
 onMounted(() => {
     getTitle();

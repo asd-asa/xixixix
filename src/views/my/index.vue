@@ -44,7 +44,6 @@ const handleFileChange = (file, fileList) => {
         url: item.url || URL.createObjectURL(item.raw), // 使用 url 或生成的 URL
         raw: item.raw, // 原始文件对象
     }));
-    console.log('选中的文件:', selectedFiles.value);
 };
 // 处理文件移除
 const handleFileRemove = (file, fileList) => {
@@ -71,6 +70,9 @@ const resetForm = () => {
     dialogVisible.value = false;
     previewImage.value = '';
 };
+function isTokenValid(token) {
+    return token && token !== 'undefined' && token !== 'null' && token.trim() !== '';
+}
 // 上传文件
 const handleFileUpload = async () => {
     if (selectedFiles.value.length === 0) {
@@ -89,20 +91,19 @@ const handleFileUpload = async () => {
     formData.append('tags', JSON.stringify(tags.value)); // 将标签数组转换为 JSON 字符串
     try {
         const response = await uploadWallpapers(formData);
-        console.log('上传成功:', response);
         // 处理上传成功后的逻辑，比如清空文件选择框、显示提示等
         resetForm(); // 调用清空表单和状态的函数
     } catch (error) {
     console.error('上传失败:', error);
 
     // 检查是否存在 token
-    const token = localStorage.getItem('token'); // 假设 token 存储在 localStorage 中
-    if (!token) {
-        console.warn('用户未登录，跳转到登录页面');
-        // 跳转到登录页面
-        window.location.href = '/login'; // 替换为你的登录页面路径
-        return;
-    }
+    const token = localStorage.getItem('token');
+    if (!token || token === 'undefined' || token === 'null' || token.trim() === '') {
+    console.warn('用户未登录，跳转到登录页面');
+    // 跳转到登录页面
+    window.location.href = '/login'; // 替换为你的登录页面路径
+    return;
+}
 
     // 处理其他上传失败的逻辑，比如显示错误提示等
     console.error('上传失败的详细信息:', error.message || error);
@@ -112,6 +113,14 @@ const handleFileUpload = async () => {
 // 重置上传
 const resetUpload = () => {
     selectedFiles.value = [];
+};
+// 退出登录
+const logout = () => {
+    // 清除 token 和其他用户信息
+    localStorage.removeItem('token'); 
+    localStorage.removeItem('refresh_token'); 
+    // 跳转到登录页面
+    window.location.href = '/login'; // 替换为你的登录页面路径
 };
 onMounted(() => {
     fetchClassifyDetail(); // 组件挂载时获取分类详情数据
@@ -177,6 +186,8 @@ onMounted(() => {
                 <el-form-item>
                 <el-button type="primary" @click="handleFileUpload">上传图片</el-button>
                 <el-button type="danger" @click="resetUpload" style="margin-left: 60px;" >重置</el-button>
+                <!-- 退出登录 -->
+                <el-button type="warning" @click="logout" style="margin-left: 60px;" >退出登录</el-button>
                 </el-form-item>
             </div>
             

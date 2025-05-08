@@ -1,22 +1,27 @@
 <template>
     <div class="login">
-        <el-form ref="loginRef" :rules="loginRules" label-width="auto" :model="loginForm" style="max-width: 600px" class="login-form">
+        <el-form ref="loginRef" :rules="loginRules" label-width="auto" :model="loginForm" style="max-width: 600px"
+            class="login-form">
             <h1>用户登录</h1>
             <el-form-item label="账号" prop="username">
                 <el-input placeholder="账号" v-model="loginForm.username">
                     <template #prefix>
-                        <el-icon><User /></el-icon>
+                        <el-icon>
+                            <User />
+                        </el-icon>
                     </template>
                 </el-input>
             </el-form-item>
-            <el-form-item label="密码" prop="password" >
+            <el-form-item label="密码" prop="password">
                 <el-input placeholder="密码" v-model="loginForm.password" show-password>
                     <template #prefix>
-                        <el-icon><Lock /></el-icon>
+                        <el-icon>
+                            <Lock />
+                        </el-icon>
                     </template>
                 </el-input>
             </el-form-item>
-                <el-checkbox v-model="loginForm.remeberMe" label="记住密码" size="large" />
+            <el-checkbox v-model="loginForm.remeberMe" label="记住密码" size="large" />
             <div class="login-btn">
                 <el-button type="primary" @click.prevent="login">登录</el-button>
                 <el-button type="success" @click="goToRegister">注册</el-button>
@@ -30,14 +35,12 @@
 <script setup>
 import request from '@/utils/request';
 import { ref } from 'vue';
-import qs from 'qs';
 import Cookies from 'js-cookie';
-import {encrypt,decrypt} from '@/utils/jsencrypt'
 import router from '@/router/index';
 const loginForm = ref({
     username: '',
     password: '',
-    remeberMe:false,
+    remeberMe: false,
 })
 const loginRef = ref(null)
 
@@ -46,43 +49,40 @@ const loginRules = {
     password: [{ required: true, message: '请输入密码', trigger: 'blur' },]
 }
 const login = () => {
-   loginRef.value.validate(async (valid) => {
+    loginRef.value.validate(async (valid) => {
         if (valid) {
-            let data = await request.post('user/login/?'+qs.stringify(loginForm.value))
-            if (data.code == 200) {
-                window.localStorage.setItem('token', data.token)
-                if(loginForm.value.remeberMe){
-                   Cookies.set('username',loginForm.value.username,{expires:30})//设置cookie,有效期30天
-                   Cookies.set('password',encrypt(loginForm.value.password),{expires:30})
-                   Cookies.set('remeberMe',loginForm.value.remeberMe,{expires:30})
-                }else{
-                    Cookies.remove('username')
-                    Cookies.remove('password')
-                    Cookies.remove('remeberMe')
-                }
-             router.replace('/')
-            }
-            else {
-                console.log('登录失败')
+            const response = await request.post('user/login/', {
+                username: loginForm.value.username,
+                password: loginForm.value.password,
+            });
+
+            if (response.code === 200) {
+                window.localStorage.setItem('token', response.token.access);
+                window.localStorage.setItem('refresh_token', response.token.refresh);
+                router.replace('/');
+            } else {
+                console.error('登录失败:', response.message);
+                ElMessage.error(response.message);
             }
         }
-    })
-}
+    });
+};
+
 function getCookie() {
     const username = Cookies.get('username')
     const password = Cookies.get('password')
     const remeberMe = Cookies.get('remeberMe')
-    loginForm.value={
-        username:username===undefined?loginForm.value.username:username,
-        password:password===undefined?loginForm.value.password:decrypt(password),
-        remeberMe:remeberMe===undefined?false:Boolean(remeberMe)
-   }
-   console.log(loginForm.value)
+    loginForm.value = {
+        username: username === undefined ? loginForm.value.username : username,
+        password: password === undefined ? loginForm.value.password : password,
+        remeberMe: remeberMe === undefined ? false : Boolean(remeberMe)
+    }
+    // console.log(loginForm.value)
 }
 getCookie()
 
 const goToRegister = () => {
-    router.push('/register'); 
+    router.push('/register');
 };
 
 </script>
