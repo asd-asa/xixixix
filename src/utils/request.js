@@ -9,12 +9,12 @@ let baseURL= 'http://localhost:8000/'
 
 const http = axios.create({
     baseURL: baseURL,
-    timeout: 3000
+    timeout: 5000
   })
 
 //请求白名单
 const whiteList = ['user/login/','user/register/','wallpapers/wallpapers/page/','title/category-list/'
-    ,'title/category-item/','title/navigation-bar/'
+    ,'title/category-item/','title/navigation-bar/',"wallpapers/wallpapers/"
 ]
 // 添加请求拦截器
 http.interceptors.request.use(
@@ -27,7 +27,6 @@ http.interceptors.request.use(
 
         // 如果不在白名单中，检查 token
         const token = window.localStorage.getItem('token');
-        console.log('token:', token);
         
         if (token && token !== 'undefined' && token !== 'null') {
             config.headers.Authorization = `Bearer ${token}`;

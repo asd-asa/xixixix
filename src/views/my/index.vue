@@ -70,9 +70,6 @@ const resetForm = () => {
     dialogVisible.value = false;
     previewImage.value = '';
 };
-function isTokenValid(token) {
-    return token && token !== 'undefined' && token !== 'null' && token.trim() !== '';
-}
 // 上传文件
 const handleFileUpload = async () => {
     if (selectedFiles.value.length === 0) {
@@ -91,6 +88,14 @@ const handleFileUpload = async () => {
     formData.append('tags', JSON.stringify(tags.value)); // 将标签数组转换为 JSON 字符串
     try {
         const response = await uploadWallpapers(formData);
+        // 假设后端返回的响应中包含压缩后的图片 URL
+        if (response && response.data) {
+            const uploadedImages = response.data.map((item) => ({
+                image: item.image, // 原始图片 URL
+                image_url: item.image_url, 
+                
+            }));
+        }
         // 处理上传成功后的逻辑，比如清空文件选择框、显示提示等
         resetForm(); // 调用清空表单和状态的函数
     } catch (error) {

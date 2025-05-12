@@ -3,6 +3,7 @@
     <LayoutSelect 
     @categoryChange="handleCategoryChange" 
     @resolutionChange="handleResolutionChange"
+    @searchChange="handleSearchChange"
     />
     <LayoutContent 
      :wallpapers="wallpapers"
@@ -28,6 +29,7 @@ const wallpapers = ref([]); // 存储壁纸数据
 const total = ref(0); // 总条数
 const selectedCategory = ref(''); // 当前选择的分类
 const selectedResolution = ref(''); // 当前选择的分辨率
+const selectedTags = ref(''); // 搜索框的值
 const currentPage = ref(1); // 当前页码
 const pageSize = ref(9); // 每页大小
 
@@ -36,7 +38,7 @@ const fetchWallpapers = async () => {
     try {
         const response = await getWallpapersPage(
             selectedCategory.value, currentPage.value, pageSize.value,
-            selectedResolution.value  // 传递分辨率参数
+            selectedResolution.value ,selectedTags.value // 传递分辨率参数
         );
         wallpapers.value = response.results;
         total.value = response.count
@@ -57,6 +59,12 @@ const handleCategoryChange = (category) => {
 // 监听分辨率变化
 const handleResolutionChange = (resolution) => {
     selectedResolution.value = resolution;
+    currentPage.value = 1; // 重置页码
+    fetchWallpapers();
+};
+// 监听搜索框变化
+const handleSearchChange = (tags) => {
+    selectedTags.value = tags;
     currentPage.value = 1; // 重置页码
     fetchWallpapers();
 };

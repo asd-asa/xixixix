@@ -11,23 +11,19 @@ import {
     ZoomOut,
 } from '@element-plus/icons-vue';
 import { ref, defineProps, watch } from 'vue';
-import type { ImageInstance } from 'element-plus'
-// 接收父组件传递的数据
-// 定义 props 类型
-
 
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
 const popupContent = ref(''); // 弹窗内容（标签名）
 const popupPosition = ref({ x: 0, y: 0 }); // 弹窗位置
 const srcList = ref([]); // 存储图片地址列表
-const imageRef = ref<ImageInstance | null>(null); // 确保类型正确
 // 全屏预览相关状态
 const showPreview = ref(false); // 是否显示全屏预览
 const previewImage = ref(''); // 当前预览的图片
 interface Wallpaper {
     id: number;
     image: string;
+    image_url: string; // 图片地址
     title: string;
     description?: string; // 可选属性
     tags?: string[]; // 可选属性
@@ -127,7 +123,7 @@ const download = (index) => {
             <div class="ContentList">
                 <div class="Content" v-for="item in wallpapers" :key="item.id"
                     @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-                    <img v-img-lazy="item.image" :alt="item.title" />
+                    <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
                     <!-- 弹窗 -->
                     <div class="Popup">
                         <!-- 遍历标签 -->

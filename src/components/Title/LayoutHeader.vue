@@ -10,48 +10,48 @@
                 </div>
                 <div class="ColumnTitle">
                     <ul>
-                        <li class="active">
-                            <RouterLink to="/">
+                        <li :class="{ active: currentRoute === '/' }">
+                            <RouterLink to="/" @click.prevent="updateActiveRoute('/')">
                                 <el-icon>
                                     <House />
                                 </el-icon>
                                 首页
                             </RouterLink>
                         </li>
-                        <li>
-                            <RouterLink to="/search">
+                        <li :class="{ active: currentRoute === '/phone' }">
+                            <RouterLink to="/phone" @click.prevent="updateActiveRoute('/phone')">
                                 <el-icon>
                                     <Search />
                                 </el-icon>
                                 搜索
                             </RouterLink>
                         </li>
-                        <li>
-                            <RouterLink to="/like">
+                        <li :class="{ active: currentRoute === '/like' }">
+                            <RouterLink to="/like" @click.prevent="updateActiveRoute('/like')">
                                 <el-icon>
                                     <Star />
                                 </el-icon>
                                 喜欢
                             </RouterLink>
                         </li>
-                        <li class="box">
-                            <RouterLink to="/my">
+                        <li :class="{ active: currentRoute === '/my' }" class="box">
+                            <RouterLink to="/my" @click.prevent="updateActiveRoute('/my')">
                                 <el-icon>
                                     <User />
                                 </el-icon>
                                 我的
                             </RouterLink>
-                            </li>
-                        <li>
-                            <RouterLink to="/setting">
+                        </li>
+                        <li :class="{ active: currentRoute === '/setting' }">
+                            <RouterLink to="/setting" @click.prevent="updateActiveRoute('/setting')">
                                 <el-icon>
                                     <Setting />
                                 </el-icon>
                                 设置
                             </RouterLink>
                         </li>
-                        <li>
-                            <RouterLink to="/about">
+                        <li :class="{ active: currentRoute === '/about' }">
+                            <RouterLink to="/about" @click.prevent="updateActiveRoute('/about')">
                                 <el-icon>
                                     <Warning />
                                 </el-icon>
@@ -68,7 +68,17 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
+const currentRoute = ref('/'); // 默认选中首页
+const router = useRouter();
+
+// 更新当前选中的路由
+const updateActiveRoute = (path) => {
+    currentRoute.value = path;
+    router.push(path); // 跳转到对应的路由
+};
 </script>
 
 <style scoped lang="scss">

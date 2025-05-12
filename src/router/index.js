@@ -5,7 +5,7 @@ import { createWebHistory, createRouter } from 'vue-router'
 import Layout from '@/views/Layout/index.vue'
 import Login from '@/views/login.vue'
 import Like from '@/views/like/index.vue'
-import Search from '@/views/search/index.vue'
+import Phone from '@/views/phone/index.vue'
 import Setting from '@/views/setting/index.vue'
 import About from '@/views/about/index.vue'
 import My from '@/views/my/index.vue'
@@ -26,8 +26,8 @@ const router = createRouter({
       component: Like,
     },
     {
-      path: '/search',
-      component: Search,
+      path: '/phone',
+      component: Phone,
     },
     {
       path: '/about',

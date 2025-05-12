@@ -32,14 +32,15 @@
 <script setup>
 import {getTitles} from "@/api/title.js";
 import {ref, onMounted} from "vue";
-import { House, Search, Star, User, Setting, Warning } from '@element-plus/icons-vue';
+import { House, Search, Star, User, Setting, Warning,Iphone } from '@element-plus/icons-vue';
 const icons = {
     House,
     Search,
     Star,
     User,
     Setting,
-    Warning
+    Warning,
+    Iphone
 };
 const titles = ref([]);
 const getTitle = async () => {

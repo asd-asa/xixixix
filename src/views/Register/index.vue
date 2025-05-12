@@ -46,7 +46,7 @@ const getRegister = async () => {
         
         // 判断接口返回结果
         if (res.code === 200) {
-            console.log('注册成功:', res);
+            // console.log('注册成功:', res);
             ElMessage.success('注册成功！'); // 显示成功提示
             router.push('/login'); // 跳转到登录页面
         } else {
@@ -102,7 +102,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
         if (valid) {
             getRegister()
         } else {
-            console.log('提交失败！');
+            // console.log('提交失败！');
         }
     });
 };
