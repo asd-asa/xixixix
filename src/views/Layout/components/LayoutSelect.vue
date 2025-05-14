@@ -10,8 +10,13 @@ const categories = ref([]);
 
 // 分辨率选项（按区间分类）
 const resolutions = ref([]);
-// 分类标签
-const selectedTag = ref([]); // 选中的标签
+
+const imgcategory = ref([
+    { label: '电脑壁纸', value: 'computer' },
+    { label: '手机壁纸', value: 'mobile' },
+    { label: '平板壁纸', value: 'unknown' },
+    { label: '头像', value: 'avatar' },   
+]);
 
 // 获取分类详情数据
 const fetchClassifyDetail = async () => {
@@ -84,10 +89,15 @@ const selectedResolution = ref('');
 const selectedCategory = ref('');
 // 搜索框的值
 const selectedTags = ref(''); 
+// 选中的类型
+const selectedType = ref('computer'); 
 // 向父组件传递分类数据
-const emit = defineEmits(['categoryChange','resolutionChange','searchChange']);
+const emit = defineEmits(['categoryChange','resolutionChange','searchChange','imgCategoryChange']);
 const handleCategoryChange = () => {
     emit('categoryChange', selectedCategory.value); // 触发事件，将分类数据传递给父组件
+};
+const handleimgCategoryChange = () => {
+    emit('imgCategoryChange', selectedType.value); // 触发事件，将类型数据传递给父组件
 };
 // 向父组件传递分辨率数据
 const handleResolutionChange = () => {
@@ -99,8 +109,10 @@ const handleResolutionChange = () => {
 //     emit('searchChange', selectedTitle.value); // 触发事件，将搜索框数据传递给父组件
     
 // };
+let isInitialized = false;
 onMounted(() => {
-    fetchClassifyDetail(); // 组件挂载时获取分类详情数据
+    fetchClassifyDetail(); 
+    handleimgCategoryChange(); 
 });
 </script>
 
@@ -123,6 +135,23 @@ onMounted(() => {
                      :key="category.value"
                      :label="category.label"
                     :value="category.value"
+                />
+                </el-select>
+            </div>
+            <div class="SelectContent">
+                <h2 style="width: 100px;">壁纸类型</h2>
+                <!-- 分类选择器 -->
+                <el-select
+                  v-model="selectedType" 
+                  placeholder="选择类型"
+                  @change="handleimgCategoryChange" 
+                  style="width: 170px;"
+                  >
+                    <el-option
+                     v-for="item in imgcategory"
+                     :key="item.value"
+                     :label="item.label"
+                     :value="item.value"
                 />
                 </el-select>
             </div>

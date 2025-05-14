@@ -6,8 +6,8 @@ export function uploadWallpapers(data) {
     return upload('wallpapers/bulk-upload/', data)
 }
 //壁纸分页
-export const getWallpapersPage = (category,page, pageSize,resolution,tags) => {
-    return get('wallpapers/wallpapers/page/', { resolution,category,page, pageSize,tags });
+export const getWallpapersPage = (category,page, pageSize,resolution,tags,media_type) => {
+    return get('wallpapers/wallpapers/page/', { resolution,category,page, pageSize,tags,media_type});
 };
 //搜索壁纸
 export const searchWallpapers = (tags) => {
