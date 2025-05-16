@@ -11,6 +11,7 @@ import {
   ZoomOut,
 } from "@element-plus/icons-vue";
 import { ref, defineProps, watch } from "vue";
+import {downloadWallpapers} from "@/api/wallpapers";
 
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
@@ -26,8 +27,9 @@ interface Wallpaper {
   image_url: string; // 图片地址
   media_type: string;
   title: string;
-  description?: string; // 可选属性
-  tags?: string[]; // 可选属性
+  description?: string; 
+  tags?: string[]; 
+  downloads?: number; 
 }
 const props = defineProps<{
   wallpapers: Wallpaper[];
@@ -110,6 +112,17 @@ const download = (index) => {
       link.click();
       URL.revokeObjectURL(blobUrl);
       link.remove();
+      // 找到当前壁纸
+      const wallpaper = props.wallpapers.find(item => item.image === url);
+      if (wallpaper) {
+        // 调用后端接口，更新下载次数
+        downloadWallpapers(wallpaper.id).then(res => {
+          if (res && typeof res.downloads === "number") {
+            wallpaper.downloads = res.downloads;
+          }
+        });
+      }
+
     })
     .catch((error) => {
       console.error("下载失败:", error);
@@ -144,6 +157,7 @@ const download = (index) => {
               <div class="PopupContent">
                 <h3>{{ item.title }}</h3>
                 <p>{{ item.description }}</p>
+                <p>下载次数：{{ item.downloads || 0 }}</p>
               </div>
               <div class="PopupSuccess">
                 <button @click="gotoImg(item.image)">预览</button>

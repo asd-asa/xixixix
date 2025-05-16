@@ -13,4 +13,7 @@ export const getWallpapersPage = (category,page, pageSize,resolution,tags,media_
 export const searchWallpapers = (tags) => {
     return get('wallpapers/wallpapers/search/', { tags });
 };
-
+//下载壁纸
+export const downloadWallpapers = (id) => {
+    return post(`wallpapers/wallpapers/download/${id}/`);
+};
