@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import {
-  Back,
   DArrowRight,
   Download,
   Refresh,
   RefreshLeft,
   RefreshRight,
-  Right,
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
-import { ref, defineProps, watch } from "vue";
-import {downloadWallpapers} from "@/api/wallpapers";
+import { ref, defineProps, watch, onMounted, computed, onBeforeUnmount } from "vue";
+import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
+
+const emit = defineEmits<{ (e: 'refresh'): void }>();
+
 
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
@@ -27,9 +28,9 @@ interface Wallpaper {
   image_url: string; // 图片地址
   media_type: string;
   title: string;
-  description?: string; 
-  tags?: string[]; 
-  downloads?: number; 
+  description?: string;
+  tags?: string[];
+  downloads?: number;
 }
 const props = defineProps<{
   wallpapers: Wallpaper[];
@@ -42,6 +43,10 @@ watch(
   },
   { immediate: true }
 );
+// 新增：把 mobile 与其他类型分开
+const masonryWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type === 'mobile' || p.media_type === 'unknown') || []);
+const otherWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type !== 'mobile' && p.media_type !== 'unknown') || []);
+
 const preloadImage = (url: string) => {
   const img = new Image();
   img.src = url;
@@ -73,6 +78,28 @@ const gotoImg = (image: string) => {
   // 设置当前预览的图片
   previewImage.value = image;
   showPreview.value = true; // 显示全屏预览
+};
+// 新增：权限判断
+const isAdmin = ref(false);
+onMounted(() => {
+  // 优先检查 role 字段；也可根据项目实际存储（如 username 或解析 token）调整
+  const role = localStorage.getItem("role") || localStorage.getItem("username");
+  isAdmin.value = role === "admin";
+});
+// 删除壁纸
+const deleteWallpaper = async (id: number) => {
+  if (!isAdmin.value) {
+    ElMessage.error("只有 admin 可以删除");
+    return;
+  }
+  try {
+    const response = await deleteWallpapers(id);
+    console.log("删除成功:", response);
+    //刷新页面
+    emit('refresh');
+  } catch (error) {
+    console.error("删除失败:", error);
+  }
 };
 
 // 显示弹窗
@@ -132,25 +159,44 @@ const download = (index) => {
 
 <template>
   <div class="LayoutContent">
-    <div class="container">
+      <div class="container">
       <div class="ContentList">
-        <div
-         class="Content-box"
-          v-for="item in wallpapers"
-          :key="item.id"
-          @mouseenter="(event) => handleMouseEnter(event, item.title)"
-          @mouseleave="handleMouseLeave"
-        >
+        <!-- 瀑布流：mobile 类型 -->
+       <div v-if="masonryWallpapers.length" class="masonry">
+        <div class="masonry-item" v-for="item in masonryWallpapers" :key="item.id"
+          @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
+          <div class="Content-mobile">
+            <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
+            <div class="Popup">
+              <div class="PopupTags">
+                <span v-for="(tag, index) in JSON.parse(item.tags)" :key="index">
+                  {{ tag }}
+                </span>
+              </div>
+              <div class="PopupContent">
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+              </div>
+              <div class="PopupSuccess">
+                <button @click="gotoImg(item.image)">预览</button>
+                <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+       <div class="grid" v-if="otherWallpapers.length">
+        <div class="Content-box" v-for="item in wallpapers" :key="item.id"
+          @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
+          <!-- 电脑壁纸 -->
           <div v-if="item.media_type === 'computer'" class="Content">
             <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
             <!-- 弹窗 -->
             <div class="Popup">
               <!-- 遍历标签 -->
               <div class="PopupTags">
-                <span
-                  v-for="(tag, index) in JSON.parse(item.tags)"
-                  :key="index"
-                >
+                <span v-for="(tag, index) in JSON.parse(item.tags)" :key="index">
                   {{ tag }}
                 </span>
               </div>
@@ -161,17 +207,16 @@ const download = (index) => {
               </div>
               <div class="PopupSuccess">
                 <button @click="gotoImg(item.image)">预览</button>
+                <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
               </div>
             </div>
           </div>
+          <!-- 头像壁纸 -->
           <div v-else-if="item.media_type === 'avatar'" class="Content-avatar">
             <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
             <div class="Popup">
               <div class="PopupTags">
-                <span
-                  v-for="(tag, index) in JSON.parse(item.tags)"
-                  :key="index"
-                >
+                <span v-for="(tag, index) in JSON.parse(item.tags)" :key="index">
                   {{ tag }}
                 </span>
               </div>
@@ -181,58 +226,14 @@ const download = (index) => {
               </div>
               <div class="PopupSuccess">
                 <button @click="gotoImg(item.image)">预览头像</button>
+                <button @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
               </div>
             </div>
           </div>
-          <div v-else-if="item.media_type === 'unknown'" class="Content">
-            <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-            <div class="Popup">
-              <div class="PopupTags">
-                <span
-                  v-for="(tag, index) in JSON.parse(item.tags)"
-                  :key="index"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-              <div class="PopupContent">
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
-              </div>
-              <div class="PopupSuccess">
-                <button @click="gotoImg(item.image)">预览</button>
-              </div>
-            </div>
-          </div>
-          <div v-else-if="item.media_type === 'mobile'" class="Content-mobile">
-            <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-            <div class="Popup">
-              <div class="PopupTags">
-                <span
-                  v-for="(tag, index) in JSON.parse(item.tags)"
-                  :key="index"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-              <div class="PopupContent">
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
-              </div>
-              <div class="PopupSuccess">
-                <button @click="gotoImg(item.image)">预览</button>
-              </div>
-            </div>
-          </div>
-          
         </div>
+      </div>
         <div v-if="showPreview" class="PreviewOverlay">
-          <el-image-viewer
-            v-if="showPreview"
-            :url-list="srcList"
-            @close="showPreview = false"
-            show-progress
-          >
+          <el-image-viewer v-if="showPreview" :url-list="srcList" @close="showPreview = false" show-progress>
             <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
               <el-icon @click="setActiveItem(srcList.length - 1)">
                 <DArrowRight />
@@ -240,21 +241,17 @@ const download = (index) => {
               <el-icon @click="actions('zoomOut')">
                 <ZoomOut />
               </el-icon>
-              <el-icon
-                @click="
-                  actions('zoomIn', { enableTransition: false, zoomRate: 2 })
-                "
-              >
+              <el-icon @click="
+                actions('zoomIn', { enableTransition: false, zoomRate: 2 })
+                ">
                 <ZoomIn />
               </el-icon>
-              <el-icon
-                @click="
-                  actions('clockwise', {
-                    rotateDeg: 180,
-                    enableTransition: false,
-                  })
-                "
-              >
+              <el-icon @click="
+                actions('clockwise', {
+                  rotateDeg: 180,
+                  enableTransition: false,
+                })
+                ">
                 <RefreshRight />
               </el-icon>
               <el-icon @click="actions('anticlockwise')">
@@ -276,26 +273,233 @@ const download = (index) => {
 
 <style scoped lang="scss">
 .LayoutContent {
-  width: 100%;
+  width: 90%;
+  margin-top: 15px;
   background-color: #fff;
+  margin:  30px auto 0;
   padding: 0 20px;
+  .container{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+    /* 瀑布流样式 */
+  .masonry {
+    column-count: 2;      
+    column-gap: 12px;
+    width: 100%;
+  }
+
+  .masonry-item {
+    display: inline-block;    
+    width: 100%;
+    margin: 0 0 12px;
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+  }
+
+  .Content-mobile {
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: block;
+    width: 100%;
+  }
+
+  .Content-mobile img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+
+  /* 响应式：窄屏列数改为 1，宽屏可为 3 列 */
+  @media (min-width: 1000px) {
+    .masonry { column-count: 3; column-gap: 16px; }
+  }
+  @media (max-width: 600px) {
+    .masonry { column-count: 1; column-gap: 8px; }
+  }
+
+
+  .el-scrollbar__thumb {
+    display: none;
+  }
 
   .ContentList {
     padding: 0 20px;
-    width: 1200px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 20px;
-    .Content-box{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    .grid {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
       align-items: center;
     }
 
+    .Content-box {
+      display: flex;
+      width: 30%;
+      margin: 1% 0px 2% 1vw;
+      justify-content: center;
+      align-items: center;
+    }
+     @media (max-width: 1400px) {
+      .Content-box {
+        width: 40%;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .Content-box {
+        width: 100%;
+      }
+    }
+
     .Content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       width: 100%;
+      height: 100%;
       position: relative;
-      height: 220px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+      /* 图片悬浮效果 */
+      &:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      /* 弹窗 */
+      .Popup {
+        width: 80%;
+        /* 弹窗宽度为图片的 70% */
+        height: 80%;
+        /* 弹窗高度为图片的 70% */
+        position: absolute;
+        top: 50%;
+        /* 定位到图片中心 */
+        left: 50%;
+        /* 定位到图片中心 */
+        transform: translate(-50%, 50%);
+        /* 确保中心点对齐 */
+        background-color: rgba(255, 255, 255, 0.75);
+        color: #1a1919;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 14px;
+        // pointer-events: none; /* 防止鼠标与弹窗交互 */
+        z-index: 10;
+        white-space: nowrap;
+        opacity: 0;
+        /* 初始透明度为 0 */
+        transition: transform 0.3s ease, opacity 0.3s ease;
+
+        /* 添加动画效果 */
+        /* 鼠标悬浮时启用鼠标事件 */
+
+        span {
+          height: 30px;
+          border: 3px solid #ccc;
+          border-radius: 30px;
+          font-size: 12px;
+          color: #1a1919;
+          margin-bottom: 5px;
+          /* 标签和标题之间的间距 */
+          font-weight: bold;
+          /* 标签加粗 */
+          margin-right: 5px;
+          /* 标签之间的间距 */
+        }
+
+        .PopupTags {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-direction: row;
+          flex-wrap: wrap;
+          /* 标签换行 */
+          margin-bottom: 5px;
+          /* 标签和标题之间的间距 */
+        }
+
+        .PopupContent {
+          text-align: center;
+
+          h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            /* 标题和描述之间的间距 */
+          }
+
+          p {
+            font-size: 14px;
+            color: #666;
+          }
+        }
+
+        .PopupSuccess {
+           display: flex;
+          flex-direction: column;
+          text-align: center;
+          margin-top: 10px;
+
+          /* 按钮和描述之间的间距 */
+          button {
+            cursor: pointer;
+            width: 150px;
+            background-color: #ece9e9;
+            color: #666;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+
+            &:hover {
+              background-color: #ece9e9;
+              /* 悬浮时颜色变化 */
+              pointer-events: auto;
+              /* 启用鼠标事件 */
+            }
+          }
+        }
+      }
+
+      /* 鼠标悬浮时显示弹窗 */
+      &:hover .Popup {
+        transform: translate(-50%, -50%);
+        /* 放大弹窗 */
+        opacity: 1;
+        /* 显示弹窗 */
+      }
+    }
+
+    .Content-mobile {
+      position: relative;
+      height: 100%;
       background-color: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -389,134 +593,9 @@ const download = (index) => {
         }
 
         .PopupSuccess {
-          margin-top: 10px;
-
-          /* 按钮和描述之间的间距 */
-          button {
-            cursor: pointer;
-            width: 150px;
-            background-color: #ece9e9;
-            color: #666;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-
-            &:hover {
-              background-color: #ece9e9;
-              /* 悬浮时颜色变化 */
-              pointer-events: auto;
-              /* 启用鼠标事件 */
-            }
-          }
-        }
-      }
-
-      /* 鼠标悬浮时显示弹窗 */
-      &:hover .Popup {
-        transform: translate(-50%, -50%);
-        /* 放大弹窗 */
-        opacity: 1;
-        /* 显示弹窗 */
-      }
-    }
-    .Content-mobile{
-      position: relative;
-      height: 100%;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-         /* 图片悬浮效果 */
-      &:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 10px;
-      }
-
-      /* 弹窗 */
-      .Popup {
-        width: 80%;
-        /* 弹窗宽度为图片的 70% */
-        height: 80%;
-        /* 弹窗高度为图片的 70% */
-        position: absolute;
-        top: 50%;
-        /* 定位到图片中心 */
-        left: 50%;
-        /* 定位到图片中心 */
-        transform: translate(-50%, 50%);
-        /* 确保中心点对齐 */
-        background-color: rgba(255, 255, 255, 0.75);
-        color: #1a1919;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 14px;
-        // pointer-events: none; /* 防止鼠标与弹窗交互 */
-        z-index: 10;
-        white-space: nowrap;
-        opacity: 0;
-        /* 初始透明度为 0 */
-        transition: transform 0.3s ease, opacity 0.3s ease;
-
-        /* 添加动画效果 */
-        /* 鼠标悬浮时启用鼠标事件 */
-
-        span {
-          height: 30px;
-          border: 3px solid #ccc;
-          border-radius: 30px;
-          font-size: 12px;
-          color: #1a1919;
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
-          font-weight: bold;
-          /* 标签加粗 */
-          margin-right: 5px;
-          /* 标签之间的间距 */
-        }
-
-        .PopupTags {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-direction: row;
-          flex-wrap: wrap;
-          /* 标签换行 */
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
-        }
-
-        .PopupContent {
+           display: flex;
+          flex-direction: column;
           text-align: center;
-
-          h3 {
-            font-size: 16px;
-            margin-bottom: 5px;
-            /* 标题和描述之间的间距 */
-          }
-
-          p {
-            font-size: 14px;
-            color: #666;
-          }
-        }
-
-        .PopupSuccess {
           margin-top: 10px;
 
           /* 按钮和描述之间的间距 */
@@ -550,7 +629,11 @@ const download = (index) => {
         /* 显示弹窗 */
       }
     }
-    .Content-avatar{
+
+    .Content-avatar {
+       display: flex;
+      justify-content: center;
+      align-items: center;
       position: relative;
       width: 200px;
       height: 200px;
@@ -560,7 +643,8 @@ const download = (index) => {
       margin-bottom: 20px;
       overflow: hidden;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
-         /* 图片悬浮效果 */
+
+      /* 图片悬浮效果 */
       &:hover {
         transform: translateY(-10px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -631,6 +715,8 @@ const download = (index) => {
         }
 
         .PopupContent {
+          display: flex;
+          flex-direction: column;
           text-align: center;
 
           h3 {
@@ -646,6 +732,9 @@ const download = (index) => {
         }
 
         .PopupSuccess {
+           display: flex;
+          flex-direction: column;
+          text-align: center;
           margin-top: 10px;
 
           /* 按钮和描述之间的间距 */

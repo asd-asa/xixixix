@@ -1,7 +1,7 @@
 // 重置样式
-* {
-  box-sizing: border-box;
-}
+// * {
+//   box-sizing: border-box;
+// }
 
 html {
   height: 100%;
@@ -45,10 +45,13 @@ ul {
   padding: 0;
 }
 .container {
-  width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  // margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: relative;
 }
 html {
-  overflow-y: scroll;
+  overflow-y: hidden;
 }

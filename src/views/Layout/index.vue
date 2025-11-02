@@ -8,6 +8,7 @@
     />
     <LayoutContent 
      :wallpapers="wallpapers"
+     @refresh="fetchWallpapers"
      />
     <LayoutFoot 
         :total="total"

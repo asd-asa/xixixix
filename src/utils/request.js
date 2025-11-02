@@ -2,6 +2,7 @@ import axios from 'axios'
 
 // 本地 
 let baseURL= 'http://localhost:8000/'
+
 // 线上
 // let baseURL= 'http://47.111.126.28:8000/'
 

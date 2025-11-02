@@ -52,11 +52,12 @@ const handlePageSizeChange = (pageSize) => {
 <style lang="scss" scoped>
 .box1 {
     width: 100%;
-    height: 60px;
+    height: 10vh;
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-
+    padding: 10px;
     .box2 {
         margin-left: 40px;
     }

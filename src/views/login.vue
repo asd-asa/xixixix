@@ -59,6 +59,7 @@ const login = () => {
             if (response.code === 200) {
                 window.localStorage.setItem('token', response.token.access);
                 window.localStorage.setItem('refresh_token', response.token.refresh);
+                window.localStorage.setItem('username', loginForm.value.username);
                 router.replace('/');
             } else {
                 console.error('登录失败:', response.message);

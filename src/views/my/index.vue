@@ -127,8 +127,13 @@ const logout = () => {
     // 跳转到登录页面
     window.location.href = '/login'; // 替换为你的登录页面路径
 };
+// 检查是否存在 token
+const hasToken = ref(false);
 onMounted(() => {
-    fetchClassifyDetail(); // 组件挂载时获取分类详情数据
+    fetchClassifyDetail();
+    // 检查 token 是否存在
+    const token = localStorage.getItem('token');
+    hasToken.value = !!token && token !== 'undefined' && token !== 'null' && token.trim() !== '';
 });
 </script>
 
@@ -190,9 +195,9 @@ onMounted(() => {
             <div class="upload-wallpapers__btns">
                 <el-form-item>
                 <el-button type="primary" @click="handleFileUpload">上传图片</el-button>
-                <el-button type="danger" @click="resetUpload" style="margin-left: 60px;" >重置</el-button>
+                <el-button type="danger" @click="resetUpload" style="margin-left: 60px;">重置</el-button>
                 <!-- 退出登录 -->
-                <el-button type="warning" @click="logout" style="margin-left: 60px;" >退出登录</el-button>
+                <el-button type="warning" @click="logout" style="margin-left: 60px;"  v-if="hasToken">退出登录</el-button>
                 </el-form-item>
             </div>
             
