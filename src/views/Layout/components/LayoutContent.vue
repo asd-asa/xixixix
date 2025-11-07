@@ -8,11 +8,10 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
-import { ref, defineProps, watch, onMounted, computed, onBeforeUnmount } from "vue";
+import { ref, defineProps, watch, onMounted, computed, onBeforeUnmount, nextTick } from "vue";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
 
-const emit = defineEmits<{ (e: 'refresh'): void }>();
-
+const emit = defineEmits<{ (e: 'refresh'): void; (e: 'loadMore'): void; (e: 'deleted', id: number): void }>();
 
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
@@ -29,7 +28,7 @@ interface Wallpaper {
   media_type: string;
   title: string;
   description?: string;
-  tags?: string[];
+  tags?: any; 
   downloads?: number;
 }
 const props = defineProps<{
@@ -44,13 +43,105 @@ watch(
   { immediate: true }
 );
 // 新增：把 mobile 与其他类型分开
-const masonryWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type === 'mobile' || p.media_type === 'unknown') || []);
+const masonryWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type === 'mobile') || []);
+const unknownWallpapers = computed(() => props.wallpapers?.filter(p =>  p.media_type === 'unknown') || []);
 const otherWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type !== 'mobile' && p.media_type !== 'unknown') || []);
-
 const preloadImage = (url: string) => {
   const img = new Image();
   img.src = url;
 };
+
+const parseTags = (t: any) => {
+  try {
+    if (!t) return [];
+    if (Array.isArray(t)) return t;
+    return JSON.parse(t || "[]");
+  } catch (e) {
+    return [];
+  }
+};
+
+// --- JS masonry columns logic ---
+const columnCount = ref(3);
+// separate columns/heights for mobile and unknown (tablet) to avoid mixing layouts
+const columnsMobile = ref<Array<Wallpaper[]>>([]);
+const columnHeightsMobile = ref<number[]>([]);
+const columnsUnknown = ref<Array<Wallpaper[]>>([]);
+const columnHeightsUnknown = ref<number[]>([]);
+// store estimated heights per item id so we can remove without reflowing everything
+const itemHeights = ref<Record<number, number>>({});
+let masonryContainer: HTMLElement | null = null;
+
+const getColumnCount = () => {
+  const w = window.innerWidth;
+  if (w >= 1000) return 3;
+  if (w >= 600) return 2;
+  return 1;
+};
+
+const initColumns = (count: number, colsRef: any, heightsRef: any) => {
+  colsRef.value = Array.from({ length: count }, () => []);
+  heightsRef.value = Array.from({ length: count }, () => 0);
+};
+
+// Estimate item height by loading image and scaling to column width
+const estimateHeight = (item: Wallpaper, colWidth: number) => {
+  return new Promise<number>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const naturalW = img.naturalWidth || 1;
+      const naturalH = img.naturalHeight || 1;
+      const scaledH = (naturalH * colWidth) / naturalW;
+      // add approx padding/margins (card padding + gap)
+      resolve(scaledH + 20);
+    };
+    img.onerror = () => resolve(200);
+    img.src = item.image_url;
+  });
+};
+
+// Place a single item into the shortest column
+const placeItemTo = async (item: Wallpaper, colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
+  if (!masonryContainer) masonryContainer = document.querySelector(containerSelector) as HTMLElement | null;
+  const containerWidth = masonryContainer ? masonryContainer.clientWidth : window.innerWidth;
+  const gap = 12; // match CSS gap
+  const colCount = columnCount.value || 1;
+  const colWidth = Math.floor((containerWidth - gap * (colCount - 1)) / colCount);
+  const h = await estimateHeight(item, colWidth);
+  // find shortest column
+  let minIndex = 0;
+  let minH = heightsRef.value[0] || 0;
+  for (let i = 1; i < heightsRef.value.length; i++) {
+    if ((heightsRef.value[i] || 0) < minH) {
+      minH = heightsRef.value[i];
+      minIndex = i;
+    }
+  }
+  colsRef.value[minIndex].push(item);
+  heightsRef.value[minIndex] = (heightsRef.value[minIndex] || 0) + h;
+  itemHeights.value[item.id] = h;
+};
+
+// Place multiple items (used for initial fill and append)
+const placeItemsTo = async (items: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
+  for (const it of items) {
+    // eslint-disable-next-line no-await-in-loop
+    await placeItemTo(it, colsRef, heightsRef, containerSelector);
+  }
+};
+
+// rebuild columns from scratch (used when column count changes or reset)
+const rebuildColumnsFor = async (list: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
+  const count = getColumnCount();
+  columnCount.value = count;
+  initColumns(count, colsRef, heightsRef);
+  masonryContainer = document.querySelector(containerSelector) as HTMLElement | null;
+  await placeItemsTo(list || [], colsRef, heightsRef, containerSelector);
+};
+
+// track previous masonry length to append only new items
+let prevMasonryLenMobile = (masonryWallpapers.value && masonryWallpapers.value.length) || 0;
+let prevMasonryLenUnknown = (unknownWallpapers.value && unknownWallpapers.value.length) || 0;
 // 显示全屏预览
 const gotoImg = (image: string) => {
   if (!image) {
@@ -81,10 +172,146 @@ const gotoImg = (image: string) => {
 };
 // 新增：权限判断
 const isAdmin = ref(false);
-onMounted(() => {
-  // 优先检查 role 字段；也可根据项目实际存储（如 username 或解析 token）调整
+
+// 无限滚动变量（仅对 masonry 区生效）
+let scrollContainer: HTMLElement | null = null;
+let scrollTimer: number | null = null;
+const loadingMore = ref(false);
+const prevLen = ref((props.wallpapers && props.wallpapers.length) || 0);
+// 触发加载的滚动比例（达到该比例时触发 loadMore），0.5 = 50%
+const loadTriggerRatio = 0.5;
+
+// attach / detach scroll listener helpers
+const attachScroll = async () => {
+  // update admin flag
   const role = localStorage.getItem("role") || localStorage.getItem("username");
   isAdmin.value = role === "admin";
+
+  // find scroll container each time to handle DOM changes
+  // 等待 DOM 更新，确保 el-scrollbar__wrap 已经渲染
+  await nextTick();
+  scrollContainer = document.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+  if (scrollContainer) {
+    scrollContainer.removeEventListener('scroll', onScroll);
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  } else {
+    window.removeEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+};
+
+const detachScroll = () => {
+  if (scrollContainer) {
+    scrollContainer.removeEventListener('scroll', onScroll);
+  }
+  window.removeEventListener('scroll', onScroll);
+  scrollContainer = null;
+};
+
+let resizeTimer: number | null = null;
+const onResize = () => {
+  if (resizeTimer !== null) return;
+  resizeTimer = window.setTimeout(async () => {
+    resizeTimer && (clearTimeout(resizeTimer), (resizeTimer = null));
+    const newCols = getColumnCount();
+    if (newCols !== columnCount.value) {
+      // rebuild both masonry sets when column count changes
+      await rebuildColumnsFor(masonryWallpapers.value || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
+      await rebuildColumnsFor(unknownWallpapers.value || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
+    }
+  }, 200);
+};
+
+onMounted(async () => {
+  await attachScroll();
+  // initial build columns for both mobile and unknown lists
+  await rebuildColumnsFor(masonryWallpapers.value || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
+  await rebuildColumnsFor(unknownWallpapers.value || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
+  window.addEventListener('resize', onResize, { passive: true });
+});
+
+onBeforeUnmount(() => {
+  detachScroll();
+  window.removeEventListener('resize', onResize);
+});
+
+// 基于滚动容器 scrollTop 判断是否接近底部
+const onScroll = () => {
+  // 节流
+  if (scrollTimer !== null) return;
+  scrollTimer = window.setTimeout(() => {
+      if ((!masonryWallpapers.value || masonryWallpapers.value.length === 0) && (!unknownWallpapers.value || unknownWallpapers.value.length === 0)) {
+      clearTimeout(scrollTimer!);
+      scrollTimer = null;
+      return;
+    }
+
+    const sc = scrollContainer || (document.scrollingElement as HTMLElement) || document.documentElement;
+    const scrollTop = sc.scrollTop;
+    const clientHeight = sc.clientHeight;
+    const scrollHeight = sc.scrollHeight;
+    const distanceToBottom = scrollHeight - (scrollTop + clientHeight);
+
+    // 计算当前滚动比例（0 - 1），当滚动位置达到或超过 loadTriggerRatio 时提前触发加载
+    const maxScrollable = Math.max(scrollHeight - clientHeight, 1);
+    const scrollRatio = scrollTop / maxScrollable;
+
+    // 调试输出（出问题时可打开控制台查看）
+    // console.log('scrollTop', scrollTop, 'clientHeight', clientHeight, 'scrollHeight', scrollHeight, 'distanceToBottom', distanceToBottom, 'scrollRatio', scrollRatio);
+
+    // 触发条件：达到滚动比例阈值（例如 50%）或仍然接近底部（兼容短页）
+    if (!loadingMore.value && (scrollRatio >= loadTriggerRatio || distanceToBottom <= 200)) {
+      loadingMore.value = true;
+      emit('loadMore');
+    }
+
+    clearTimeout(scrollTimer!);
+    scrollTimer = null;
+  }, 150);
+};
+
+// 父组件追加数据后重置 loadingMore
+watch(
+  () => (props.wallpapers ? props.wallpapers.length : 0),
+  (len) => {
+    if (len > prevLen.value) {
+      loadingMore.value = false;
+    }
+    prevLen.value = len;
+  }
+);
+
+// 当 masonry 内容发生变化（如切换壁纸类型）时，重新 attach 滚动容器并重置状态
+// watch mobile list
+watch(masonryWallpapers, async (list) => {
+  await attachScroll();
+  const newLen = (list || []).length;
+  const currCols = getColumnCount();
+  if (newLen < prevMasonryLenMobile || currCols !== columnCount.value) {
+    await rebuildColumnsFor(list || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
+  } else if (newLen > prevMasonryLenMobile) {
+    const newItems = list.slice(prevMasonryLenMobile);
+    await placeItemsTo(newItems, columnsMobile, columnHeightsMobile, '.masonry-columns');
+  }
+  loadingMore.value = false;
+  prevMasonryLenMobile = newLen;
+});
+
+// watch unknown (tablet) list
+watch(unknownWallpapers, async (list) => {
+  await attachScroll();
+  const newLen = (list || []).length;
+  const currCols = getColumnCount();
+  if (newLen < prevMasonryLenUnknown || currCols !== columnCount.value) {
+    await rebuildColumnsFor(list || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
+  } else if (newLen > prevMasonryLenUnknown) {
+    const newItems = list.slice(prevMasonryLenUnknown);
+    await placeItemsTo(newItems, columnsUnknown, columnHeightsUnknown, '.masonry-columns');
+  }
+  loadingMore.value = false;
+  prevMasonryLenUnknown = newLen;
 });
 // 删除壁纸
 const deleteWallpaper = async (id: number) => {
@@ -95,10 +322,37 @@ const deleteWallpaper = async (id: number) => {
   try {
     const response = await deleteWallpapers(id);
     console.log("删除成功:", response);
-    //刷新页面
-    emit('refresh');
+    // 先在本地移除：从 columns 中找到对应项并删除，仅调整该列高度，避免重排所有项
+    // try mobile columns
+    for (let c = 0; c < columnsMobile.value.length; c++) {
+      const idx = columnsMobile.value[c].findIndex((it) => it.id === id);
+      if (idx !== -1) {
+        const h = itemHeights.value[id] || 0;
+        columnsMobile.value[c].splice(idx, 1);
+        columnHeightsMobile.value[c] = Math.max(0, (columnHeightsMobile.value[c] || 0) - h);
+        delete itemHeights.value[id];
+        prevMasonryLenMobile = Math.max(0, prevMasonryLenMobile - 1);
+        break;
+      }
+    }
+    // try unknown columns
+    for (let c = 0; c < columnsUnknown.value.length; c++) {
+      const idx = columnsUnknown.value[c].findIndex((it) => it.id === id);
+      if (idx !== -1) {
+        const h = itemHeights.value[id] || 0;
+        columnsUnknown.value[c].splice(idx, 1);
+        columnHeightsUnknown.value[c] = Math.max(0, (columnHeightsUnknown.value[c] || 0) - h);
+        delete itemHeights.value[id];
+        prevMasonryLenUnknown = Math.max(0, prevMasonryLenUnknown - 1);
+        break;
+      }
+    }
+
+    // 通知父组件从 wallpapers 数据中删除该项（父组件只需 filter 掉，不必重新请求全部）
+    emit('deleted', id);
   } catch (error) {
     console.error("删除失败:", error);
+    ElMessage.error("删除失败，请稍后重试");
   }
 };
 
@@ -161,33 +415,60 @@ const download = (index) => {
   <div class="LayoutContent">
       <div class="container">
       <div class="ContentList">
-        <!-- 瀑布流：mobile 类型 -->
-       <div v-if="masonryWallpapers.length" class="masonry">
-        <div class="masonry-item" v-for="item in masonryWallpapers" :key="item.id"
-          @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-          <div class="Content-mobile">
-            <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-            <div class="Popup">
-              <div class="PopupTags">
-                <span v-for="(tag, index) in JSON.parse(item.tags)" :key="index">
-                  {{ tag }}
-                </span>
-              </div>
-              <div class="PopupContent">
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
-              </div>
-              <div class="PopupSuccess">
-                <button @click="gotoImg(item.image)">预览</button>
-                <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+        <!-- 瀑布流（JS 列布局）：mobile 和 unknown 类型 -->
+        <div v-if="masonryWallpapers.length" class="masonry-columns">
+          <div class="masonry-column" v-for="(col, colIndex) in columnsMobile" :key="colIndex">
+            <div class="masonry-item" v-for="item in col" :key="item.id"
+              @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
+              <div class="Content-mobile">
+                <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
+                <div class="Popup">
+                  <div class="PopupTags">
+                    <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
+                      {{ tag }}
+                    </span>
+                  </div>
+                  <div class="PopupContent">
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.description }}</p>
+                  </div>
+                  <div class="PopupSuccess">
+                    <button @click="gotoImg(item.image)">预览</button>
+                    <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+        <div v-if="unknownWallpapers.length" class="masonry-columns">
+          <div class="masonry-column" v-for="(col, colIndex) in columnsUnknown" :key="colIndex">
+            <div class="masonry-item" v-for="item in col" :key="item.id"
+              @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
+              <div class="Content-mobile">
+                <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
+                <div class="Popup">
+                  <div class="PopupTags">
+                    <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
+                      {{ tag }}
+                    </span>
+                  </div>
+                  <div class="PopupContent">
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.description }}</p>
+                  </div>
+                  <div class="PopupSuccess">
+                    <button @click="gotoImg(item.image)">预览</button>
+                    <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
        <div class="grid" v-if="otherWallpapers.length">
-        <div class="Content-box" v-for="item in wallpapers" :key="item.id"
+        <div class="Content-box" v-for="item in otherWallpapers" :key="item.id"
           @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
           <!-- 电脑壁纸 -->
           <div v-if="item.media_type === 'computer'" class="Content">
@@ -196,7 +477,7 @@ const download = (index) => {
             <div class="Popup">
               <!-- 遍历标签 -->
               <div class="PopupTags">
-                <span v-for="(tag, index) in JSON.parse(item.tags)" :key="index">
+                <span v-for="(tag, index) in parseTags(item.tags)" :key="index">
                   {{ tag }}
                 </span>
               </div>
@@ -216,7 +497,7 @@ const download = (index) => {
             <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
             <div class="Popup">
               <div class="PopupTags">
-                <span v-for="(tag, index) in JSON.parse(item.tags)" :key="index">
+                <span v-for="(tag, index) in parseTags(item.tags)" :key="index">
                   {{ tag }}
                 </span>
               </div>
@@ -285,20 +566,24 @@ const download = (index) => {
     align-items: center;
   }
     /* 瀑布流样式 */
-  .masonry {
-    column-count: 2;      
-    column-gap: 12px;
-    width: 100%;
+  /* JS-driven masonry columns */
+  .masonry-columns {
+    display: flex;
+    gap: 12px;
+    width: 90%;
+    align-items: flex-start;
+  }
+
+  .masonry-column {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .masonry-item {
-    display: inline-block;    
     width: 100%;
-    margin: 0 0 12px;
-    break-inside: avoid;
-    -webkit-column-break-inside: avoid;
   }
-
   .Content-mobile {
     background: #fff;
     border-radius: 8px;
@@ -307,6 +592,13 @@ const download = (index) => {
     display: block;
     width: 100%;
   }
+
+  // ::v-deep .el-scrollbar__bar,
+  // ::v-deep .el-scrollbar__thumb {
+  //   display: none !important;
+  //   opacity: 0 !important;
+  //   pointer-events: none !important;
+  // }
 
   .Content-mobile img {
     width: 100%;
@@ -323,12 +615,6 @@ const download = (index) => {
   @media (max-width: 600px) {
     .masonry { column-count: 1; column-gap: 8px; }
   }
-
-
-  .el-scrollbar__thumb {
-    display: none;
-  }
-
   .ContentList {
     padding: 0 20px;
     display: flex;
@@ -366,7 +652,7 @@ const download = (index) => {
       justify-content: center;
       align-items: center;
       width: 100%;
-      height: 100%;
+      height: 100%; 
       position: relative;
       background-color: #fff;
       border-radius: 10px;
@@ -635,8 +921,8 @@ const download = (index) => {
       justify-content: center;
       align-items: center;
       position: relative;
-      width: 200px;
-      height: 200px;
+      width: 50%;
+      height: 50%;
       background-color: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);

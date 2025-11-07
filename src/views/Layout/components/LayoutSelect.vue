@@ -107,7 +107,6 @@ const handleResolutionChange = () => {
 // 向父组件传递搜索框数据
 // const handleSearchChange = () => {
 //     emit('searchChange', selectedTitle.value); // 触发事件，将搜索框数据传递给父组件
-
 // };
 let isInitialized = false;
 onMounted(() => {
