@@ -1,3 +1,165 @@
+<template>
+  <div class="LayoutContent">
+    <div class="container">
+      <div class="ContentList">
+        <!-- 瀑布流（JS 列布局）：mobile -->
+        <div v-if="masonryWallpapers.length" class="masonry-columns">
+          <template v-for="i in columnCount" :key="i">
+            <div class="masonry-column">
+              <div
+                class="masonry-item"
+                v-for="item in columnsMobile[i - 1] || []"
+                :key="item.id"
+                @mouseenter="(event) => handleMouseEnter(event, item.title)"
+                @mouseleave="handleMouseLeave"
+              >
+                <div class="Content-mobile">
+                  <img
+                    v-img-lazy="item.image_url"
+                    :alt="item.title"
+                    loading="lazy"
+                  />
+                  <div class="Popup">
+                    <div class="PopupTags">
+                      <span
+                        v-for="(tag, index) in parseTags(item.tags)"
+                        :key="index"
+                      >
+                        {{ tag }}
+                      </span>
+                    </div>
+                    <div class="PopupContent">
+                      <h3>{{ item.title }}</h3>
+
+                    </div>
+                    <div class="PopupSuccess">
+                      <button @click="gotoImg(item.image)">预览</button>
+                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
+                        删除
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="grid" v-if="otherWallpapers.length">
+          <div
+            v-for="item in otherWallpapers"
+            :key="item.id"
+            :class="item.media_type === 'avatar' ? 'Content-box-avatar' : 'Content-box'"
+            @mouseenter="(event) => handleMouseEnter(event, item.title)"
+            @mouseleave="handleMouseLeave"
+          >
+            <!-- 电脑壁纸 -->
+            <div v-if="item.media_type === 'computer'" class="Content">
+              <img
+                v-img-lazy="item.image_url"
+                :alt="item.title"
+                loading="lazy"
+              />
+              <!-- 弹窗 -->
+              <div class="Popup">
+                <!-- 遍历标签 -->
+                <div class="PopupTags">
+                  <span
+                    v-for="(tag, index) in parseTags(item.tags)"
+                    :key="index"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+                <div class="PopupContent">
+                  <h3>{{ item.title }}</h3>
+                </div>
+                <div class="PopupSuccess">
+                  <button @click="gotoImg(item.image)">预览</button>
+                  <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- 头像壁纸 -->
+            <div
+              v-else-if="item.media_type === 'avatar'"
+              class="Content-avatar"
+            >
+              <img
+                v-img-lazy="item.image_url"
+                :alt="item.title"
+                loading="lazy"
+              />
+              <div class="Popup">
+                <div class="PopupTags">
+                  <span
+                    v-for="(tag, index) in parseTags(item.tags)"
+                    :key="index"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+                <div class="PopupContent">
+                  <h3>{{ item.title }}</h3>
+                </div>
+                <div class="PopupSuccess">
+                  <button @click="gotoImg(item.image)">预览</button>
+                  <button @click="deleteWallpaper(item.id)">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="showPreview" class="PreviewOverlay">
+          <el-image-viewer
+            v-if="showPreview"
+            :url-list="srcList"
+            @close="showPreview = false"
+            show-progress
+          >
+            <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
+              <el-icon @click="setActiveItem(srcList.length - 1)">
+                <DArrowRight />
+              </el-icon>
+              <el-icon @click="actions('zoomOut')">
+                <ZoomOut />
+              </el-icon>
+              <el-icon
+                @click="
+                  actions('zoomIn', { enableTransition: false, zoomRate: 2 })
+                "
+              >
+                <ZoomIn />
+              </el-icon>
+              <el-icon
+                @click="
+                  actions('clockwise', {
+                    rotateDeg: 180,
+                    enableTransition: false,
+                  })
+                "
+              >
+                <RefreshRight />
+              </el-icon>
+              <el-icon @click="actions('anticlockwise')">
+                <RefreshLeft />
+              </el-icon>
+              <el-icon @click="reset">
+                <Refresh />
+              </el-icon>
+              <el-icon @click="download(activeIndex)">
+                <Download />
+              </el-icon>
+            </template>
+          </el-image-viewer>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import {
   DArrowRight,
@@ -8,10 +170,22 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
-import { ref, defineProps, watch, onMounted, computed, onBeforeUnmount, nextTick } from "vue";
+import {
+  ref,
+  defineProps,
+  watch,
+  onMounted,
+  computed,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
 
-const emit = defineEmits<{ (e: 'refresh'): void; (e: 'loadMore'): void; (e: 'deleted', id: number): void }>();
+const emit = defineEmits<{
+  (e: "refresh"): void;
+  (e: "loadMore"): void;
+  (e: "deleted", id: number): void;
+}>();
 
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
@@ -28,7 +202,7 @@ interface Wallpaper {
   media_type: string;
   title: string;
   description?: string;
-  tags?: any; 
+  tags?: any;
   downloads?: number;
 }
 const props = defineProps<{
@@ -43,9 +217,12 @@ watch(
   { immediate: true }
 );
 // 新增：把 mobile 与其他类型分开
-const masonryWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type === 'mobile') || []);
-const unknownWallpapers = computed(() => props.wallpapers?.filter(p =>  p.media_type === 'unknown') || []);
-const otherWallpapers = computed(() => props.wallpapers?.filter(p => p.media_type !== 'mobile' && p.media_type !== 'unknown') || []);
+const masonryWallpapers = computed(
+  () => props.wallpapers?.filter((p) => p.media_type === "mobile") || []
+);
+const otherWallpapers = computed(
+  () => props.wallpapers?.filter((p) => p.media_type !== "mobile") || []
+);
 const preloadImage = (url: string) => {
   const img = new Image();
   img.src = url;
@@ -99,12 +276,24 @@ const estimateHeight = (item: Wallpaper, colWidth: number) => {
 };
 
 // 将单个项目放入当前最短的列中
-const placeItemTo = async (item: Wallpaper, colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
-  if (!masonryContainer) masonryContainer = document.querySelector(containerSelector) as HTMLElement | null;
-  const containerWidth = masonryContainer ? masonryContainer.clientWidth : window.innerWidth;
+const placeItemTo = async (
+  item: Wallpaper,
+  colsRef: any,
+  heightsRef: any,
+  containerSelector = ".masonry-columns"
+) => {
+  if (!masonryContainer)
+    masonryContainer = document.querySelector(
+      containerSelector
+    ) as HTMLElement | null;
+  const containerWidth = masonryContainer
+    ? masonryContainer.clientWidth
+    : window.innerWidth;
   const gap = 12; // match CSS gap
   const colCount = columnCount.value || 1;
-  const colWidth = Math.floor((containerWidth - gap * (colCount - 1)) / colCount);
+  const colWidth = Math.floor(
+    (containerWidth - gap * (colCount - 1)) / colCount
+  );
   const h = await estimateHeight(item, colWidth);
   // find shortest column
   let minIndex = 0;
@@ -121,7 +310,12 @@ const placeItemTo = async (item: Wallpaper, colsRef: any, heightsRef: any, conta
 };
 
 // 批量放置项目（用于初始填充和追加）
-const placeItemsTo = async (items: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
+const placeItemsTo = async (
+  items: Wallpaper[],
+  colsRef: any,
+  heightsRef: any,
+  containerSelector = ".masonry-columns"
+) => {
   for (const it of items) {
     // eslint-disable-next-line no-await-in-loop
     await placeItemTo(it, colsRef, heightsRef, containerSelector);
@@ -129,19 +323,26 @@ const placeItemsTo = async (items: Wallpaper[], colsRef: any, heightsRef: any, c
 };
 
 // 从头重建列（在列数变化或需要重置时使用）
-const rebuildColumnsFor = async (list: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns', readyRef: any = null) => {
+const rebuildColumnsFor = async (
+  list: Wallpaper[],
+  colsRef: any,
+  heightsRef: any,
+  containerSelector = ".masonry-columns",
+  readyRef: any = null
+) => {
   const count = getColumnCount();
   columnCount.value = count;
   initColumns(count, colsRef, heightsRef);
-  masonryContainer = document.querySelector(containerSelector) as HTMLElement | null;
+  masonryContainer = document.querySelector(
+    containerSelector
+  ) as HTMLElement | null;
   await placeItemsTo(list || [], colsRef, heightsRef, containerSelector);
   if (readyRef) readyRef.value = true;
 };
 
 // 跟踪上次瀑布流项目长度，仅对新增项进行追加
-let prevMasonryLenMobile = (masonryWallpapers.value && masonryWallpapers.value.length) || 0;
-let prevMasonryLenUnknown = (unknownWallpapers.value && unknownWallpapers.value.length) || 0;
-// 就绪标志用于控制可见性：仅在项目放置完成后显示列 
+let prevMasonryLenMobile =
+  (masonryWallpapers.value && masonryWallpapers.value.length) || 0;
 // 显示全屏预览
 const gotoImg = (image: string) => {
   if (!image) {
@@ -190,23 +391,25 @@ const attachScroll = async () => {
   // find scroll container each time to handle DOM changes
   // 等待 DOM 更新，确保 el-scrollbar__wrap 已经渲染
   await nextTick();
-  scrollContainer = document.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+  scrollContainer = document.querySelector(
+    ".el-scrollbar__wrap"
+  ) as HTMLElement | null;
   if (scrollContainer) {
-    scrollContainer.removeEventListener('scroll', onScroll);
-    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    scrollContainer.removeEventListener("scroll", onScroll);
+    scrollContainer.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
   } else {
-    window.removeEventListener('scroll', onScroll);
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
   }
 };
 
 const detachScroll = () => {
   if (scrollContainer) {
-    scrollContainer.removeEventListener('scroll', onScroll);
+    scrollContainer.removeEventListener("scroll", onScroll);
   }
-  window.removeEventListener('scroll', onScroll);
+  window.removeEventListener("scroll", onScroll);
   scrollContainer = null;
 };
 
@@ -219,8 +422,12 @@ const onResize = () => {
     const newCols = getColumnCount();
     if (newCols !== columnCount.value) {
       // rebuild both masonry sets when column count changes
-      await rebuildColumnsFor(masonryWallpapers.value || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
-      await rebuildColumnsFor(unknownWallpapers.value || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
+      await rebuildColumnsFor(
+        masonryWallpapers.value || [],
+        columnsMobile,
+        columnHeightsMobile,
+        ".masonry-columns"
+      );
     }
   }, 200);
 };
@@ -228,14 +435,18 @@ const onResize = () => {
 onMounted(async () => {
   await attachScroll();
   // 初始为 mobile 与 unknown 列构建布局
-  await rebuildColumnsFor(masonryWallpapers.value || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
-  await rebuildColumnsFor(unknownWallpapers.value || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
-  window.addEventListener('resize', onResize, { passive: true });
+  await rebuildColumnsFor(
+    masonryWallpapers.value || [],
+    columnsMobile,
+    columnHeightsMobile,
+    ".masonry-columns"
+  );
+  window.addEventListener("resize", onResize, { passive: true });
 });
 
 onBeforeUnmount(() => {
   detachScroll();
-  window.removeEventListener('resize', onResize);
+  window.removeEventListener("resize", onResize);
 });
 
 // 基于滚动容器的 scrollTop 判断是否接近底部以触发加载
@@ -243,13 +454,16 @@ const onScroll = () => {
   // 节流
   if (scrollTimer !== null) return;
   scrollTimer = window.setTimeout(() => {
-      if ((!masonryWallpapers.value || masonryWallpapers.value.length === 0) && (!unknownWallpapers.value || unknownWallpapers.value.length === 0)) {
+    if (!masonryWallpapers.value || masonryWallpapers.value.length === 0) {
       clearTimeout(scrollTimer!);
       scrollTimer = null;
       return;
     }
 
-    const sc = scrollContainer || (document.scrollingElement as HTMLElement) || document.documentElement;
+    const sc =
+      scrollContainer ||
+      (document.scrollingElement as HTMLElement) ||
+      document.documentElement;
     const scrollTop = sc.scrollTop;
     const clientHeight = sc.clientHeight;
     const scrollHeight = sc.scrollHeight;
@@ -263,9 +477,12 @@ const onScroll = () => {
     // console.log('scrollTop', scrollTop, 'clientHeight', clientHeight, 'scrollHeight', scrollHeight, 'distanceToBottom', distanceToBottom, 'scrollRatio', scrollRatio);
 
     // 触发条件：达到滚动比例阈值（例如 50%）或仍然接近底部（兼容短页）
-    if (!loadingMore.value && (scrollRatio >= loadTriggerRatio || distanceToBottom <= 200)) {
+    if (
+      !loadingMore.value &&
+      (scrollRatio >= loadTriggerRatio || distanceToBottom <= 200)
+    ) {
       loadingMore.value = true;
-      emit('loadMore');
+      emit("loadMore");
     }
 
     clearTimeout(scrollTimer!);
@@ -291,29 +508,25 @@ watch(masonryWallpapers, async (list) => {
   const newLen = (list || []).length;
   const currCols = getColumnCount();
   if (newLen < prevMasonryLenMobile || currCols !== columnCount.value) {
-    await rebuildColumnsFor(list || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
+    await rebuildColumnsFor(
+      list || [],
+      columnsMobile,
+      columnHeightsMobile,
+      ".masonry-columns"
+    );
   } else if (newLen > prevMasonryLenMobile) {
     const newItems = list.slice(prevMasonryLenMobile);
-    await placeItemsTo(newItems, columnsMobile, columnHeightsMobile, '.masonry-columns');
+    await placeItemsTo(
+      newItems,
+      columnsMobile,
+      columnHeightsMobile,
+      ".masonry-columns"
+    );
   }
   loadingMore.value = false;
   prevMasonryLenMobile = newLen;
 });
 
-// 监听 unknown（平板）列表变化
-watch(unknownWallpapers, async (list) => {
-  await attachScroll();
-  const newLen = (list || []).length;
-  const currCols = getColumnCount();
-  if (newLen < prevMasonryLenUnknown || currCols !== columnCount.value) {
-    await rebuildColumnsFor(list || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
-  } else if (newLen > prevMasonryLenUnknown) {
-    const newItems = list.slice(prevMasonryLenUnknown);
-    await placeItemsTo(newItems, columnsUnknown, columnHeightsUnknown, '.masonry-columns');
-  } 
-  loadingMore.value = false;
-  prevMasonryLenUnknown = newLen;
-});
 // 删除壁纸
 const deleteWallpaper = async (id: number) => {
   if (!isAdmin.value) {
@@ -322,12 +535,15 @@ const deleteWallpaper = async (id: number) => {
   }
   try {
     const response = await deleteWallpapers(id);
-    if(response.code == 200){
+    if (response.code == 200) {
       ElMessage.success("删除成功");
     }
-    const target = props.wallpapers.find(it => it.id === id);
-    if (target && (target.media_type === 'computer' || target.media_type === 'avatar')) {
-      emit('refresh');
+    const target = props.wallpapers.find((it) => it.id === id);
+    if (
+      target &&
+      (target.media_type === "computer" || target.media_type === "avatar")
+    ) {
+      emit("refresh");
       return;
     }
     // 先在本地移除：从 columns 中找到对应项并删除，仅调整该列高度，避免重排所有项
@@ -336,7 +552,10 @@ const deleteWallpaper = async (id: number) => {
       if (idx !== -1) {
         const h = itemHeights.value[id] || 0;
         columnsMobile.value[c].splice(idx, 1);
-        columnHeightsMobile.value[c] = Math.max(0, (columnHeightsMobile.value[c] || 0) - h);
+        columnHeightsMobile.value[c] = Math.max(
+          0,
+          (columnHeightsMobile.value[c] || 0) - h
+        );
         delete itemHeights.value[id];
         prevMasonryLenMobile = Math.max(0, prevMasonryLenMobile - 1);
         break;
@@ -347,15 +566,17 @@ const deleteWallpaper = async (id: number) => {
       if (idx !== -1) {
         const h = itemHeights.value[id] || 0;
         columnsUnknown.value[c].splice(idx, 1);
-        columnHeightsUnknown.value[c] = Math.max(0, (columnHeightsUnknown.value[c] || 0) - h);
+        columnHeightsUnknown.value[c] = Math.max(
+          0,
+          (columnHeightsUnknown.value[c] || 0) - h
+        );
         delete itemHeights.value[id];
-        prevMasonryLenUnknown = Math.max(0, prevMasonryLenUnknown - 1);
         break;
       }
     }
 
     // 通知父组件从 wallpapers 数据中删除该项（父组件只需 filter 掉，不必重新请求全部）
-    emit('deleted', id);
+    emit("deleted", id);
   } catch (error) {
     console.error("删除失败:", error);
     ElMessage.error("删除失败，请稍后重试");
@@ -400,16 +621,15 @@ const download = (index) => {
       URL.revokeObjectURL(blobUrl);
       link.remove();
       // 找到当前壁纸
-      const wallpaper = props.wallpapers.find(item => item.image === url);
+      const wallpaper = props.wallpapers.find((item) => item.image === url);
       if (wallpaper) {
         // 调用后端接口，更新下载次数
-        downloadWallpapers(wallpaper.id).then(res => {
+        downloadWallpapers(wallpaper.id).then((res) => {
           if (res && typeof res.downloads === "number") {
             wallpaper.downloads = res.downloads;
           }
         });
       }
-
     })
     .catch((error) => {
       console.error("下载失败:", error);
@@ -417,165 +637,20 @@ const download = (index) => {
 };
 </script>
 
-<template>
-  <div class="LayoutContent">
-      <div class="container">
-      <div class="ContentList">
-        <!-- 瀑布流（JS 列布局）：mobile 和 unknown 类型 -->
-        <div v-if="masonryWallpapers.length" class="masonry-columns">
-          <template v-for="i in columnCount" :key="i">
-            <div class="masonry-column">
-              <div class="masonry-item" v-for="item in (columnsMobile[i-1] || [])" :key="item.id"
-                @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-                <div class="Content-mobile">
-                  <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-                  <div class="Popup">
-                    <div class="PopupTags">
-                      <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
-                        {{ tag }}
-                      </span>
-                    </div>
-                    <div class="PopupContent">
-                      <h3>{{ item.title }}</h3>
-                      <!-- <p>{{ item.description }}</p> -->
-                    </div>
-                    <div class="PopupSuccess">
-                      <button @click="gotoImg(item.image)">预览</button>
-                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-        </div>
-        <div v-if="unknownWallpapers.length" class="masonry-columns">
-          <template v-for="i in columnCount" :key="i">
-            <div class="masonry-column">
-              <div class="masonry-item" v-for="item in (columnsUnknown[i-1] || [])" :key="item.id"
-                @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-                <div class="Content-mobile">
-                  <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-                  <div class="Popup">
-                    <div class="PopupTags">
-                      <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
-                        {{ tag }}
-                      </span>
-                    </div>
-                    <div class="PopupContent">
-                      <h3>{{ item.title }}</h3>
-                      <!-- <p>{{ item.description }}</p> -->
-                    </div>
-                    <div class="PopupSuccess">
-                      <button @click="gotoImg(item.image)">预览</button>
-                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-        </div>
-
-       <div class="grid" v-if="otherWallpapers.length">
-        <div class="Content-box" v-for="item in otherWallpapers" :key="item.id"
-          @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-          <!-- 电脑壁纸 -->
-          <div v-if="item.media_type === 'computer'" class="Content">
-            <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-            <!-- 弹窗 -->
-            <div class="Popup">
-              <!-- 遍历标签 -->
-              <div class="PopupTags">
-                <span v-for="(tag, index) in parseTags(item.tags)" :key="index">
-                  {{ tag }}
-                </span>
-              </div>
-              <div class="PopupContent">
-                <h3>{{ item.title }}</h3>
-                <!-- <p>{{ item.description }}</p> -->
-                <!-- <p>下载次数：{{ item.downloads || 0 }}</p> -->
-              </div>
-              <div class="PopupSuccess">
-                <button @click="gotoImg(item.image)">预览</button>
-                <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
-              </div>
-            </div>
-          </div>
-          <!-- 头像壁纸 -->
-          <div v-else-if="item.media_type === 'avatar'" class="Content-avatar">
-            <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-            <div class="Popup">
-              <div class="PopupTags">
-                <span v-for="(tag, index) in parseTags(item.tags)" :key="index">
-                  {{ tag }}
-                </span>
-              </div>
-              <div class="PopupContent">
-                <h3>{{ item.title }}</h3>
-                <!-- <p>{{ item.description }}</p> -->
-              </div>
-              <div class="PopupSuccess">
-                <button @click="gotoImg(item.image)">预览头像</button>
-                <button @click="deleteWallpaper(item.id)">删除</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-        <div v-if="showPreview" class="PreviewOverlay">
-          <el-image-viewer v-if="showPreview" :url-list="srcList" @close="showPreview = false" show-progress>
-            <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
-              <el-icon @click="setActiveItem(srcList.length - 1)">
-                <DArrowRight />
-              </el-icon>
-              <el-icon @click="actions('zoomOut')">
-                <ZoomOut />
-              </el-icon>
-              <el-icon @click="
-                actions('zoomIn', { enableTransition: false, zoomRate: 2 })
-                ">
-                <ZoomIn />
-              </el-icon>
-              <el-icon @click="
-                actions('clockwise', {
-                  rotateDeg: 180,
-                  enableTransition: false,
-                })
-                ">
-                <RefreshRight />
-              </el-icon>
-              <el-icon @click="actions('anticlockwise')">
-                <RefreshLeft />
-              </el-icon>
-              <el-icon @click="reset">
-                <Refresh />
-              </el-icon>
-              <el-icon @click="download(activeIndex)">
-                <Download />
-              </el-icon>
-            </template>
-          </el-image-viewer>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <style scoped lang="scss">
 .LayoutContent {
   width: 90%;
   margin-top: 15px;
   background-color: #fff;
-  margin:  30px auto 0;
+  margin: 30px auto 0;
   padding: 0 20px;
-  .container{
+  .container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
   }
-    /* 瀑布流样式 */
+  /* 瀑布流样式 */
   /* JS-driven masonry columns */
   .masonry-columns {
     display: flex;
@@ -598,7 +673,7 @@ const download = (index) => {
     background: #fff;
     border-radius: 8px;
     padding: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     display: block;
     width: 100%;
   }
@@ -620,10 +695,16 @@ const download = (index) => {
 
   /* 响应式：窄屏列数改为 1，宽屏可为 3 列 */
   @media (min-width: 1000px) {
-    .masonry { column-count: 3; column-gap: 16px; }
+    .masonry {
+      column-count: 3;
+      column-gap: 16px;
+    }
   }
   @media (max-width: 600px) {
-    .masonry { column-count: 1; column-gap: 8px; }
+    .masonry {
+      column-count: 1;
+      column-gap: 8px;
+    }
   }
   .ContentList {
     padding: 0 20px;
@@ -646,10 +727,10 @@ const download = (index) => {
       justify-content: center;
       align-items: center;
       box-sizing: border-box;
-      aspect-ratio: 16 / 10; 
+      aspect-ratio: 16 / 10;
       overflow: hidden;
     }
-     @media (max-width: 1400px) {
+    @media (max-width: 1400px) {
       .Content-box {
         width: 40%;
       }
@@ -660,13 +741,34 @@ const download = (index) => {
         width: 100%;
       }
     }
+    .Content-box-avatar {
+      border-radius: 10px;
+      display: flex;
+      width: 20%;
+      margin: 1% 0px 2% 1vw;
+      justify-content: center;
+      align-items: center;
+       aspect-ratio: 1 / 1;
+      overflow: hidden;
+    }
+    @media (max-width: 1400px) {
+      .Content-box-avatar {
+        width: 40%;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .Content-box-avatar {
+        width: 100%;
+      }
+    }
 
     .Content {
       display: flex;
       justify-content: center;
       align-items: center;
       width: 100%;
-      height: 100%; 
+      height: 100%;
       position: relative;
       background-color: #fff;
       border-radius: 10px;
@@ -867,7 +969,7 @@ const download = (index) => {
         }
 
         .PopupContent {
-           display: flex;
+          display: flex;
           justify-content: space-around;
           width: 70%;
           height: 20%;
@@ -886,7 +988,7 @@ const download = (index) => {
         }
 
         .PopupSuccess {
-           width: 70%;
+          width: 70%;
           height: 30%;
           display: flex;
           align-items: center;
@@ -929,8 +1031,8 @@ const download = (index) => {
       justify-content: center;
       align-items: center;
       position: relative;
-      width: 50%;
-      height: 50%;
+      width: 70%;
+      height: 70%;
       background-color: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1009,7 +1111,7 @@ const download = (index) => {
         }
 
         .PopupContent {
-           display: flex;
+          display: flex;
           justify-content: space-around;
           width: 70%;
           height: 20%;
@@ -1028,7 +1130,7 @@ const download = (index) => {
         }
 
         .PopupSuccess {
-           width: 70%;
+          width: 70%;
           height: 50%;
           display: flex;
           align-items: center;
