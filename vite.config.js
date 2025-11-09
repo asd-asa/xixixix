@@ -27,5 +27,6 @@ export default defineConfig({
   },
   server: {
     port: 5000, // 将端口设置为 5000（可以根据需要更改）
+    open: true, // 启动 dev server 时自动在默认浏览器打开页面
   },
 })

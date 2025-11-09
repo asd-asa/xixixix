@@ -61,14 +61,12 @@ const parseTags = (t: any) => {
   }
 };
 
-// --- JS masonry columns logic ---
+// --- JS 驱动的瀑布列布局逻辑 ---
 const columnCount = ref(3);
-// separate columns/heights for mobile and unknown (tablet) to avoid mixing layouts
 const columnsMobile = ref<Array<Wallpaper[]>>([]);
 const columnHeightsMobile = ref<number[]>([]);
 const columnsUnknown = ref<Array<Wallpaper[]>>([]);
 const columnHeightsUnknown = ref<number[]>([]);
-// store estimated heights per item id so we can remove without reflowing everything
 const itemHeights = ref<Record<number, number>>({});
 let masonryContainer: HTMLElement | null = null;
 
@@ -84,7 +82,7 @@ const initColumns = (count: number, colsRef: any, heightsRef: any) => {
   heightsRef.value = Array.from({ length: count }, () => 0);
 };
 
-// Estimate item height by loading image and scaling to column width
+// 通过加载图片并按列宽进行缩放来估算项目高度
 const estimateHeight = (item: Wallpaper, colWidth: number) => {
   return new Promise<number>((resolve) => {
     const img = new Image();
@@ -100,7 +98,7 @@ const estimateHeight = (item: Wallpaper, colWidth: number) => {
   });
 };
 
-// Place a single item into the shortest column
+// 将单个项目放入当前最短的列中
 const placeItemTo = async (item: Wallpaper, colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
   if (!masonryContainer) masonryContainer = document.querySelector(containerSelector) as HTMLElement | null;
   const containerWidth = masonryContainer ? masonryContainer.clientWidth : window.innerWidth;
@@ -122,7 +120,7 @@ const placeItemTo = async (item: Wallpaper, colsRef: any, heightsRef: any, conta
   itemHeights.value[item.id] = h;
 };
 
-// Place multiple items (used for initial fill and append)
+// 批量放置项目（用于初始填充和追加）
 const placeItemsTo = async (items: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
   for (const it of items) {
     // eslint-disable-next-line no-await-in-loop
@@ -130,18 +128,20 @@ const placeItemsTo = async (items: Wallpaper[], colsRef: any, heightsRef: any, c
   }
 };
 
-// rebuild columns from scratch (used when column count changes or reset)
-const rebuildColumnsFor = async (list: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns') => {
+// 从头重建列（在列数变化或需要重置时使用）
+const rebuildColumnsFor = async (list: Wallpaper[], colsRef: any, heightsRef: any, containerSelector = '.masonry-columns', readyRef: any = null) => {
   const count = getColumnCount();
   columnCount.value = count;
   initColumns(count, colsRef, heightsRef);
   masonryContainer = document.querySelector(containerSelector) as HTMLElement | null;
   await placeItemsTo(list || [], colsRef, heightsRef, containerSelector);
+  if (readyRef) readyRef.value = true;
 };
 
-// track previous masonry length to append only new items
+// 跟踪上次瀑布流项目长度，仅对新增项进行追加
 let prevMasonryLenMobile = (masonryWallpapers.value && masonryWallpapers.value.length) || 0;
 let prevMasonryLenUnknown = (unknownWallpapers.value && unknownWallpapers.value.length) || 0;
+// 就绪标志用于控制可见性：仅在项目放置完成后显示列 
 // 显示全屏预览
 const gotoImg = (image: string) => {
   if (!image) {
@@ -170,10 +170,10 @@ const gotoImg = (image: string) => {
   previewImage.value = image;
   showPreview.value = true; // 显示全屏预览
 };
-// 新增：权限判断
+// 新增：权限判断（判断是否为 admin）
 const isAdmin = ref(false);
 
-// 无限滚动变量（仅对 masonry 区生效）
+// 无限滚动相关变量（仅对瀑布流区域生效）
 let scrollContainer: HTMLElement | null = null;
 let scrollTimer: number | null = null;
 const loadingMore = ref(false);
@@ -181,7 +181,7 @@ const prevLen = ref((props.wallpapers && props.wallpapers.length) || 0);
 // 触发加载的滚动比例（达到该比例时触发 loadMore），0.5 = 50%
 const loadTriggerRatio = 0.5;
 
-// attach / detach scroll listener helpers
+// 绑定/解绑滚动监听的辅助函数
 const attachScroll = async () => {
   // update admin flag
   const role = localStorage.getItem("role") || localStorage.getItem("username");
@@ -211,6 +211,7 @@ const detachScroll = () => {
 };
 
 let resizeTimer: number | null = null;
+// 窗口尺寸变化处理：当列数发生变化时重建列布局
 const onResize = () => {
   if (resizeTimer !== null) return;
   resizeTimer = window.setTimeout(async () => {
@@ -226,7 +227,7 @@ const onResize = () => {
 
 onMounted(async () => {
   await attachScroll();
-  // initial build columns for both mobile and unknown lists
+  // 初始为 mobile 与 unknown 列构建布局
   await rebuildColumnsFor(masonryWallpapers.value || [], columnsMobile, columnHeightsMobile, '.masonry-columns');
   await rebuildColumnsFor(unknownWallpapers.value || [], columnsUnknown, columnHeightsUnknown, '.masonry-columns');
   window.addEventListener('resize', onResize, { passive: true });
@@ -237,7 +238,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize);
 });
 
-// 基于滚动容器 scrollTop 判断是否接近底部
+// 基于滚动容器的 scrollTop 判断是否接近底部以触发加载
 const onScroll = () => {
   // 节流
   if (scrollTimer !== null) return;
@@ -272,7 +273,7 @@ const onScroll = () => {
   }, 150);
 };
 
-// 父组件追加数据后重置 loadingMore
+// 父组件追加数据后重置 loadingMore 标志
 watch(
   () => (props.wallpapers ? props.wallpapers.length : 0),
   (len) => {
@@ -283,8 +284,8 @@ watch(
   }
 );
 
-// 当 masonry 内容发生变化（如切换壁纸类型）时，重新 attach 滚动容器并重置状态
-// watch mobile list
+// 当瀑布流内容发生变化（例如切换类型）时，重新绑定滚动容器并重置状态
+// 监听 mobile 列表变化
 watch(masonryWallpapers, async (list) => {
   await attachScroll();
   const newLen = (list || []).length;
@@ -299,7 +300,7 @@ watch(masonryWallpapers, async (list) => {
   prevMasonryLenMobile = newLen;
 });
 
-// watch unknown (tablet) list
+// 监听 unknown（平板）列表变化
 watch(unknownWallpapers, async (list) => {
   await attachScroll();
   const newLen = (list || []).length;
@@ -309,7 +310,7 @@ watch(unknownWallpapers, async (list) => {
   } else if (newLen > prevMasonryLenUnknown) {
     const newItems = list.slice(prevMasonryLenUnknown);
     await placeItemsTo(newItems, columnsUnknown, columnHeightsUnknown, '.masonry-columns');
-  }
+  } 
   loadingMore.value = false;
   prevMasonryLenUnknown = newLen;
 });
@@ -321,9 +322,15 @@ const deleteWallpaper = async (id: number) => {
   }
   try {
     const response = await deleteWallpapers(id);
-    console.log("删除成功:", response);
+    if(response.code == 200){
+      ElMessage.success("删除成功");
+    }
+    const target = props.wallpapers.find(it => it.id === id);
+    if (target && (target.media_type === 'computer' || target.media_type === 'avatar')) {
+      emit('refresh');
+      return;
+    }
     // 先在本地移除：从 columns 中找到对应项并删除，仅调整该列高度，避免重排所有项
-    // try mobile columns
     for (let c = 0; c < columnsMobile.value.length; c++) {
       const idx = columnsMobile.value[c].findIndex((it) => it.id === id);
       if (idx !== -1) {
@@ -335,7 +342,6 @@ const deleteWallpaper = async (id: number) => {
         break;
       }
     }
-    // try unknown columns
     for (let c = 0; c < columnsUnknown.value.length; c++) {
       const idx = columnsUnknown.value[c].findIndex((it) => it.id === id);
       if (idx !== -1) {
@@ -417,54 +423,58 @@ const download = (index) => {
       <div class="ContentList">
         <!-- 瀑布流（JS 列布局）：mobile 和 unknown 类型 -->
         <div v-if="masonryWallpapers.length" class="masonry-columns">
-          <div class="masonry-column" v-for="(col, colIndex) in columnsMobile" :key="colIndex">
-            <div class="masonry-item" v-for="item in col" :key="item.id"
-              @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-              <div class="Content-mobile">
-                <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-                <div class="Popup">
-                  <div class="PopupTags">
-                    <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
-                      {{ tag }}
-                    </span>
-                  </div>
-                  <div class="PopupContent">
-                    <h3>{{ item.title }}</h3>
-                    <p>{{ item.description }}</p>
-                  </div>
-                  <div class="PopupSuccess">
-                    <button @click="gotoImg(item.image)">预览</button>
-                    <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+          <template v-for="i in columnCount" :key="i">
+            <div class="masonry-column">
+              <div class="masonry-item" v-for="item in (columnsMobile[i-1] || [])" :key="item.id"
+                @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
+                <div class="Content-mobile">
+                  <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
+                  <div class="Popup">
+                    <div class="PopupTags">
+                      <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
+                        {{ tag }}
+                      </span>
+                    </div>
+                    <div class="PopupContent">
+                      <h3>{{ item.title }}</h3>
+                      <!-- <p>{{ item.description }}</p> -->
+                    </div>
+                    <div class="PopupSuccess">
+                      <button @click="gotoImg(item.image)">预览</button>
+                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
         </div>
         <div v-if="unknownWallpapers.length" class="masonry-columns">
-          <div class="masonry-column" v-for="(col, colIndex) in columnsUnknown" :key="colIndex">
-            <div class="masonry-item" v-for="item in col" :key="item.id"
-              @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
-              <div class="Content-mobile">
-                <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
-                <div class="Popup">
-                  <div class="PopupTags">
-                    <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
-                      {{ tag }}
-                    </span>
-                  </div>
-                  <div class="PopupContent">
-                    <h3>{{ item.title }}</h3>
-                    <p>{{ item.description }}</p>
-                  </div>
-                  <div class="PopupSuccess">
-                    <button @click="gotoImg(item.image)">预览</button>
-                    <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+          <template v-for="i in columnCount" :key="i">
+            <div class="masonry-column">
+              <div class="masonry-item" v-for="item in (columnsUnknown[i-1] || [])" :key="item.id"
+                @mouseenter="(event) => handleMouseEnter(event, item.title)" @mouseleave="handleMouseLeave">
+                <div class="Content-mobile">
+                  <img v-img-lazy="item.image_url" :alt="item.title" loading="lazy" />
+                  <div class="Popup">
+                    <div class="PopupTags">
+                      <span v-for="(tag, index) in (parseTags(item.tags))" :key="index">
+                        {{ tag }}
+                      </span>
+                    </div>
+                    <div class="PopupContent">
+                      <h3>{{ item.title }}</h3>
+                      <!-- <p>{{ item.description }}</p> -->
+                    </div>
+                    <div class="PopupSuccess">
+                      <button @click="gotoImg(item.image)">预览</button>
+                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
         </div>
 
        <div class="grid" v-if="otherWallpapers.length">
@@ -483,12 +493,12 @@ const download = (index) => {
               </div>
               <div class="PopupContent">
                 <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
-                <p>下载次数：{{ item.downloads || 0 }}</p>
+                <!-- <p>{{ item.description }}</p> -->
+                <!-- <p>下载次数：{{ item.downloads || 0 }}</p> -->
               </div>
               <div class="PopupSuccess">
                 <button @click="gotoImg(item.image)">预览</button>
-                <button v-if="isAdmin" @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+                <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
               </div>
             </div>
           </div>
@@ -503,11 +513,11 @@ const download = (index) => {
               </div>
               <div class="PopupContent">
                 <h3>{{ item.title }}</h3>
-                <p>{{ item.description }}</p>
+                <!-- <p>{{ item.description }}</p> -->
               </div>
               <div class="PopupSuccess">
                 <button @click="gotoImg(item.image)">预览头像</button>
-                <button @click="deleteWallpaper(item.id)" style="margin-top: 5px;">删除</button>
+                <button @click="deleteWallpaper(item.id)">删除</button>
               </div>
             </div>
           </div>
@@ -629,11 +639,15 @@ const download = (index) => {
     }
 
     .Content-box {
+      border-radius: 10px;
       display: flex;
       width: 30%;
       margin: 1% 0px 2% 1vw;
       justify-content: center;
       align-items: center;
+      box-sizing: border-box;
+      aspect-ratio: 16 / 10; 
+      overflow: hidden;
     }
      @media (max-width: 1400px) {
       .Content-box {
@@ -676,16 +690,11 @@ const download = (index) => {
       /* 弹窗 */
       .Popup {
         width: 80%;
-        /* 弹窗宽度为图片的 70% */
         height: 80%;
-        /* 弹窗高度为图片的 70% */
         position: absolute;
         top: 50%;
-        /* 定位到图片中心 */
         left: 50%;
-        /* 定位到图片中心 */
         transform: translate(-50%, 50%);
-        /* 确保中心点对齐 */
         background-color: rgba(255, 255, 255, 0.75);
         color: #1a1919;
         display: flex;
@@ -695,15 +704,10 @@ const download = (index) => {
         padding: 10px;
         border-radius: 10px;
         font-size: 14px;
-        // pointer-events: none; /* 防止鼠标与弹窗交互 */
         z-index: 10;
         white-space: nowrap;
         opacity: 0;
-        /* 初始透明度为 0 */
         transition: transform 0.3s ease, opacity 0.3s ease;
-
-        /* 添加动画效果 */
-        /* 鼠标悬浮时启用鼠标事件 */
 
         span {
           height: 30px;
@@ -711,32 +715,30 @@ const download = (index) => {
           border-radius: 30px;
           font-size: 12px;
           color: #1a1919;
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
           font-weight: bold;
-          /* 标签加粗 */
-          margin-right: 5px;
-          /* 标签之间的间距 */
         }
 
         .PopupTags {
+          width: 100%;
+          max-height: 100%;
+          margin-bottom: 5px;
+          overflow: hidden;
           display: flex;
           justify-content: center;
           align-items: center;
-          flex-direction: row;
           flex-wrap: wrap;
-          /* 标签换行 */
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
         }
 
         .PopupContent {
-          text-align: center;
+          display: flex;
+          justify-content: space-around;
+          width: 70%;
+          height: 20%;
+          align-items: center;
 
           h3 {
             font-size: 16px;
             margin-bottom: 5px;
-            /* 标题和描述之间的间距 */
           }
 
           p {
@@ -746,19 +748,20 @@ const download = (index) => {
         }
 
         .PopupSuccess {
-           display: flex;
-          flex-direction: column;
-          text-align: center;
-          margin-top: 10px;
+          width: 70%;
+          height: 50%;
+          display: flex;
+          align-items: center;
+          gap: 15px;
 
           /* 按钮和描述之间的间距 */
           button {
             cursor: pointer;
-            width: 150px;
+            width: 70%;
+            height: 50%;
             background-color: #ece9e9;
             color: #666;
             border: none;
-            padding: 10px 20px;
             border-radius: 25px;
             cursor: pointer;
             font-size: 14px;
@@ -853,18 +856,22 @@ const download = (index) => {
         }
 
         .PopupTags {
+          width: 100%;
+          max-height: 100%;
+          margin-bottom: 5px;
+          overflow: hidden;
           display: flex;
           justify-content: center;
           align-items: center;
-          flex-direction: row;
           flex-wrap: wrap;
-          /* 标签换行 */
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
         }
 
         .PopupContent {
-          text-align: center;
+           display: flex;
+          justify-content: space-around;
+          width: 70%;
+          height: 20%;
+          align-items: center;
 
           h3 {
             font-size: 16px;
@@ -879,19 +886,20 @@ const download = (index) => {
         }
 
         .PopupSuccess {
-           display: flex;
-          flex-direction: column;
-          text-align: center;
-          margin-top: 10px;
+           width: 70%;
+          height: 30%;
+          display: flex;
+          align-items: center;
+          gap: 15px;
 
           /* 按钮和描述之间的间距 */
           button {
             cursor: pointer;
-            width: 150px;
+            width: 70%;
+            height: 30%;
             background-color: #ece9e9;
             color: #666;
             border: none;
-            padding: 10px 20px;
             border-radius: 25px;
             cursor: pointer;
             font-size: 14px;
@@ -917,7 +925,7 @@ const download = (index) => {
     }
 
     .Content-avatar {
-       display: flex;
+      display: flex;
       justify-content: center;
       align-items: center;
       position: relative;
@@ -990,20 +998,22 @@ const download = (index) => {
         }
 
         .PopupTags {
+          width: 100%;
+          max-height: 100%;
+          margin-bottom: 5px;
+          overflow: hidden;
           display: flex;
           justify-content: center;
           align-items: center;
-          flex-direction: row;
           flex-wrap: wrap;
-          /* 标签换行 */
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
         }
 
         .PopupContent {
-          display: flex;
-          flex-direction: column;
-          text-align: center;
+           display: flex;
+          justify-content: space-around;
+          width: 70%;
+          height: 20%;
+          align-items: center;
 
           h3 {
             font-size: 16px;
@@ -1018,19 +1028,20 @@ const download = (index) => {
         }
 
         .PopupSuccess {
-           display: flex;
-          flex-direction: column;
-          text-align: center;
-          margin-top: 10px;
+           width: 70%;
+          height: 50%;
+          display: flex;
+          align-items: center;
+          gap: 15px;
 
           /* 按钮和描述之间的间距 */
           button {
             cursor: pointer;
-            width: 150px;
+            width: 70%;
+            height: 50%;
             background-color: #ece9e9;
             color: #666;
             border: none;
-            padding: 10px 20px;
             border-radius: 25px;
             cursor: pointer;
             font-size: 14px;

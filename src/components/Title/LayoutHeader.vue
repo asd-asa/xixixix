@@ -1,6 +1,5 @@
 <template>
     <div class="box1">
-
     </div>
     <div class="Header">
         <div class="container">

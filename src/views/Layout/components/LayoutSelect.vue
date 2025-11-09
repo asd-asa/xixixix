@@ -104,11 +104,6 @@ const handleResolutionChange = () => {
     emit('resolutionChange', selectedResolution.value); // 触发事件，将分辨率数据传递给父组件
 
 };
-// 向父组件传递搜索框数据
-// const handleSearchChange = () => {
-//     emit('searchChange', selectedTitle.value); // 触发事件，将搜索框数据传递给父组件
-// };
-let isInitialized = false;
 onMounted(() => {
     fetchClassifyDetail();
     handleimgCategoryChange();
@@ -139,13 +134,6 @@ onMounted(() => {
                 </div>
                 <div class="SelectContent">
                     <h2 style="width: 100px;">搜索</h2>
-                    <!-- <el-input
-                  v-model="selectedTitle" 
-                  placeholder="输入名称"
-                  style="width: 170px;"
-                  clearable
-                  @change="handleSearchChange"
-                /> -->
                     <el-autocomplete v-model="selectedTags" placeholder="输入名称" style="width: 170px;" clearable
                         :fetch-suggestions="querySearchAsync" @select="handleSearchSelect" @clear="handleClear" />
                 </div>
@@ -166,7 +154,6 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .ColumnSelect {
-    // margin-top: 50px; /* 导航栏的高度 */
     width: 90%;
     margin: auto;
     height: 50%;

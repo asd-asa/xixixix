@@ -16,6 +16,7 @@
         :total="total"
         :current-page="currentPage"
         :page-size="pageSize"
+        :mediaType="selectedType"
         @update-page="handlePageChange"
     />
   </el-scrollbar>
@@ -81,7 +82,6 @@ const handleRefresh = () => {
 // 子组件删除某一项（只从本地数组移除，不重新请求全部）
 const handleDeleted = (id) => {
     wallpapers.value = wallpapers.value.filter(item => item.id !== id);
-
     if (typeof total.value === 'number' && total.value > 0) total.value = Math.max(0, total.value - 1);
 };
 // 监听分类变化

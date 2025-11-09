@@ -139,7 +139,7 @@ onMounted(() => {
 
 <template>
     <div class="upload-wallpapers">
-        <el-form style="min-width: 400px" status-icon label-width="auto" class="demo-ruleForm">
+        <el-form style="min-width: 400px" status-icon label-width="auto"  class="demo-ruleForm">
             <el-form-item label="图片名称">
                 <el-input  type="text"  autocomplete="off" v-model="title"/>
             </el-form-item>
@@ -169,27 +169,30 @@ onMounted(() => {
                 </el-select>
             </el-form-item>
             <el-form-item label="图片预览">
-                <el-upload
-                    drag
-                    multiple
-                    :limit="50"
-                    :auto-upload="false"
-                    list-type="picture-card"
-                    :file-list="selectedFiles"
-                    :on-change="handleFileChange"
-                    :on-remove="handleFileRemove"
-                    :on-preview="handleFilePreview"
-                     accept="image/*"
-                >
-                    <el-icon>
-                        <Plus />
-                    </el-icon>
-                </el-upload>
+                <!-- 限制上传预览区域高度，内容过多时出现内部滚动 -->
+                <div class="upload-preview">
+                    <el-upload
+                        drag
+                        multiple
+                        :limit="50"
+                        :auto-upload="false"
+                        list-type="picture-card"
+                        :file-list="selectedFiles"
+                        :on-change="handleFileChange"
+                        :on-remove="handleFileRemove"
+                        :on-preview="handleFilePreview"
+                        accept="image/*"
+                    >
+                        <el-icon>
+                            <Plus />
+                        </el-icon>
+                    </el-upload>
 
-                <!-- 图片预览对话框 -->
-                <el-dialog v-model="dialogVisible" title="图片预览">
-                    <img :src="previewImage" style="width: 100%;" alt="Preview Image" />
-                </el-dialog>
+                    <!-- 图片预览对话框 -->
+                    <el-dialog v-model="dialogVisible" title="图片预览">
+                        <img :src="previewImage" style="width: 100%;" alt="Preview Image" />
+                    </el-dialog>
+                </div>
 
             </el-form-item>
             <div class="upload-wallpapers__btns">
@@ -209,12 +212,36 @@ onMounted(() => {
 <style scoped lang="scss">
 .upload-wallpapers{
     margin-top: 20px;
+    height: 100%;
+    width: 50%;
+    margin:  30px auto 0;
+    padding: 0 20px;
     .upload-wallpapers__btns{
         display: flex;
         justify-content: center;
         align-items: center;
         margin-top: 40px;
     }
+}
+
+/* 上传预览区域限制高度并启用内部滚动，防止上传列表过长把底部按钮挤出视口 */
+.upload-preview{
+    max-height: 360px; /* 可根据需要调整 */
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid rgba(0,0,0,0.04);
+    border-radius: 6px;
+    background: #fff;
+}
+
+/* 底部按钮保持可见：在页面滚动时尽量固定在视口底部 */
+.upload-wallpapers__btns{
+    position: sticky;
+    bottom: 0;
+    background: #fff; /* 防止覆盖内容可见性问题 */
+    padding-top: 12px;
+    padding-bottom: 18px;
+    z-index: 5;
 }
 
 </style>

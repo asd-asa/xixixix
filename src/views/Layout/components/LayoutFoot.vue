@@ -1,6 +1,6 @@
 <template>
  <div class="container">
-        <div class="box1">
+        <div  v-if="showFooter" class="box1">
             <el-pagination
                 background
                 layout="prev, pager, next"
@@ -34,11 +34,16 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    mediaType: {
+        type: String,
+        default: '',
+    },
 });
 // 定义事件，用于向父组件传递分页变化
 const emit = defineEmits(['update-page']); // 定义事件名称
 // 总页数
 const totalPages = computed(() => Math.ceil(props.total / props.pageSize));
+const showFooter = computed(() => !(props.mediaType === 'mobile' || props.mediaType === 'unknown'));
 // 处理页码变化
 const handlePageChange = (page) => {
     emit('update-page', { page, pageSize: props.pageSize }); // 传递页码变化
