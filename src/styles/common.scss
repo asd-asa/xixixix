@@ -38,6 +38,70 @@ ul {
   list-style: none;
 }
 
+.el-form, .el-main, .el-header, .el-footer, 
+.el-scrollbar, .el-container , .el-aside, .el-scrollbar__view,
+.el-menu,.el-tabs,.tabs-menu,.el-table,.el-table__body-wrapper,
+.el-table__body,.el-table__row,.el-table__cell,.el-input,
+.el-input__inner,.el-card,.el-card__body.el-tabs__nav,
+.el-input__wrapper,.el-upload-dragger,.el-collapse-item__header,.el-collapse-item__wrap,
+.el-select__wrapper,.el-upload-list,.el-form-item__content,.upload-preview,.el-upload{
+  background: transparent !important;
+}
+.btn-next{
+  .el-icon{
+    color: #FFF !important;
+  }
+  color: #FFF !important;
+  background: transparent !important;
+}
+.btn-prev{
+  .el-icon{
+    color: #FFF !important;
+  }
+  color: #FFF !important;
+  background: transparent !important;
+}
+.number{
+   color: #FFF !important;
+  background: transparent !important  ;
+}
+.btn-quicknext{
+  color: #FFF !important;
+  background: transparent !important;
+}
+.btn-quickprev{
+  color: #FFF !important;
+  background: transparent !important;
+}
+.el-input__inner{
+  color: #FFF ;
+}
+.el-select{
+   border-radius: 4px !important;
+   border: 1px solid white !important;
+}
+.el-input__wrapper{
+  border-radius: 4px !important;
+  border: 1px solid white !important;
+}
+.el-select__wrapper{
+  border-radius: 4px !important;
+}
+.el-select__selected-item{
+  color: #FFF !important;
+}
+.el-select__caret{
+  color: #FFF !important;
+}
+.el-input__icon{
+  color: #FFF !important;
+}
+.el-checkbox__label{
+  color: #FFF !important;
+}
+.el-input__prefix-inner{
+  color: #FFF !important;
+}
 #app {
   // background: #f5f5f5;
   user-select: none;

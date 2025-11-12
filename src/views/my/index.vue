@@ -196,12 +196,10 @@ onMounted(() => {
 
             </el-form-item>
             <div class="upload-wallpapers__btns">
-                <el-form-item>
                 <el-button type="primary" @click="handleFileUpload">上传图片</el-button>
                 <el-button type="danger" @click="resetUpload" style="margin-left: 60px;">重置</el-button>
                 <!-- 退出登录 -->
                 <el-button type="warning" @click="logout" style="margin-left: 60px;"  v-if="hasToken">退出登录</el-button>
-                </el-form-item>
             </div>
             
         </el-form>
@@ -216,7 +214,13 @@ onMounted(() => {
     width: 50%;
     margin:  30px auto 0;
     padding: 0 20px;
+     :deep(){
+        .el-form-item__label{
+            color: #FFF;
+        }
+    }
     .upload-wallpapers__btns{
+        background: transparent;
         display: flex;
         justify-content: center;
         align-items: center;

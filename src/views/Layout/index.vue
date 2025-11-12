@@ -1,5 +1,5 @@
 <template>
-  <el-scrollbar max-height="1000px">
+  <el-scrollbar>
     <LayoutSelect
       @categoryChange="handleCategoryChange"
       @resolutionChange="handleResolutionChange"
@@ -27,7 +27,7 @@ import LayoutSelect from "./components/LayoutSelect.vue";
 import LayoutContent from "./components/LayoutContent.vue";
 import LayoutFoot from "./components/LayoutFoot.vue";
 import { onMounted, ref, watch } from "vue";
-import { getWallpapersPage } from "@/api/wallpapers.js";
+import { getWallpapersPage } from "@/api/wallpapers.js"; 
 
 const wallpapers = ref([]); // 存储壁纸数据
 const total = ref(0); // 总条数
@@ -47,7 +47,7 @@ const fetchWallpapers = async (append = false) => {
       selectedResolution.value,
       selectedTags.value,
       selectedType.value
-    );
+    )
     const results = response.results || [];
     if (append) {
       wallpapers.value = wallpapers.value.concat(results);
@@ -65,8 +65,8 @@ const fetchWallpapers = async (append = false) => {
 
 // 初次加载
 onMounted(() => {
-  currentPage.value = 1;
-  fetchWallpapers(false);
+  // currentPage.value = 1;
+  // fetchWallpapers(false);
 });
 
 // 处理子组件发出的 loadMore 事件：加载下一页并追加

@@ -53,7 +53,7 @@ const handlePageSizeChange = (pageSize) => {
 <style lang="scss" scoped>
 .box1 {
   width: 100%;
-  height: 10vh;
+  height: 7vh;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;

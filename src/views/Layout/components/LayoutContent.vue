@@ -641,8 +641,8 @@ const download = (index) => {
 .LayoutContent {
   width: 90%;
   margin-top: 15px;
-  background-color: #fff;
-  margin: 30px auto 0;
+  background: transparent;
+  margin: 0 auto;
   padding: 0 20px;
   .container {
     display: flex;
@@ -654,7 +654,7 @@ const download = (index) => {
   /* JS-driven masonry columns */
   .masonry-columns {
     display: flex;
-    gap: 12px;
+    margin: 1% 0px 1% 1vw;
     width: 90%;
     align-items: flex-start;
   }
@@ -663,7 +663,7 @@ const download = (index) => {
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    margin: 1% 0px 1% 1vw;
   }
 
   .masonry-item {
@@ -672,7 +672,6 @@ const download = (index) => {
   .Content-mobile {
     background: #fff;
     border-radius: 8px;
-    padding: 6px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     display: block;
     width: 100%;
@@ -723,7 +722,7 @@ const download = (index) => {
       border-radius: 10px;
       display: flex;
       width: 30%;
-      margin: 1% 0px 2% 1vw;
+      margin: 1% 0px 1% 1vw;
       justify-content: center;
       align-items: center;
       box-sizing: border-box;
@@ -745,7 +744,7 @@ const download = (index) => {
       border-radius: 10px;
       display: flex;
       width: 20%;
-      margin: 1% 0px 2% 1vw;
+      margin: 1% 0px 1% 1vw;
       justify-content: center;
       align-items: center;
        aspect-ratio: 1 / 1;

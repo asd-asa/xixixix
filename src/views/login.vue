@@ -21,7 +21,7 @@
                     </template>
                 </el-input>
             </el-form-item>
-            <el-checkbox v-model="loginForm.remeberMe" label="记住密码" size="large" />
+            <el-checkbox v-model="loginForm.remeberMe"  label="记住密码" size="large" />
             <div class="login-btn">
                 <el-button type="primary" @click.prevent="login">登录</el-button>
                 <el-button type="success" @click="goToRegister">注册</el-button>
@@ -93,15 +93,17 @@ const goToRegister = () => {
     display: flex;
     justify-content: center;
     align-items: center;
-    // width: 800px;
     height: 100vh;
-    // flex-direction: column;
-
     h1 {
+        color: #FFF;
         font-size: 30px;
         margin-bottom: 20px;
     }
-
+    :deep(){
+        .el-form-item__label{
+            color: #FFF;
+        }
+    }
     .login-form {
         width: 400px;
         padding: 20px;

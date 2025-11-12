@@ -72,7 +72,6 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, defineEmits, onMounted } from "vue";
 import { getClassifyDetail } from "@/api/title";
@@ -190,15 +189,17 @@ onMounted(() => {
 });
 </script>
 
-
 <style scoped lang="scss">
 .ColumnSelect {
   width: 90%;
   margin: auto;
   height: 50%;
-  background-color: #fff;
+  background: transparent;
   z-index: 2;
-
+  ::v-deep .el-autocomplete .el-input__inner::placeholder {
+    color: #fff;
+    opacity: 1;
+  }
   .ColumnSelectTitle {
     width: 100%;
     height: 50%;
@@ -208,10 +209,13 @@ onMounted(() => {
     justify-content: space-around;
     align-items: center;
     padding: 0 20px;
-    background-color: #fff;
+    background: transparent;
   }
 
   .SelectContent {
+    h2 {
+      color: #fff;
+    }
     width: 174px;
     height: 68px;
     display: flex;
