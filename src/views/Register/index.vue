@@ -31,10 +31,9 @@
       </el-form-item>
 
       <div class="login-btn">
-        <el-button type="primary" @click="submitForm(ruleFormRef)">
-          提交
-        </el-button>
-        <el-button @click="resetForm(ruleFormRef)">重置</el-button>
+        <!-- <el-button @click="resetForm(ruleFormRef)">重置</el-button> -->
+        <el-button @click="router.push('/login')">返回</el-button>
+        <el-button type="primary" @click="submitForm(ruleFormRef)">提交</el-button>
       </div>
     </el-form>
   </div>

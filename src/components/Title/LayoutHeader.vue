@@ -52,7 +52,6 @@ const handleLogoClick = async () => {
     flex-direction: row;
     .ColumnImg {
       width: 100px;
-      height: 48px;
       cursor: pointer;
       img {
         width: 100%;

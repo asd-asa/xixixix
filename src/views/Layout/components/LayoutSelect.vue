@@ -3,7 +3,7 @@
     <div class="container">
       <div class="ColumnSelectTitle">
         <div class="SelectContent">
-          <h2 style="width: 100px">分类</h2>
+          <!-- <h2 style="width: 100px">分类</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedCategory"
@@ -21,7 +21,7 @@
           </el-select>
         </div>
         <div class="SelectContent">
-          <h2 style="width: 100px">壁纸类型</h2>
+          <!-- <h2 style="width: 100px">壁纸类型</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedType"
@@ -38,7 +38,7 @@
           </el-select>
         </div>
         <div class="SelectContent">
-          <h2 style="width: 100px">搜索</h2>
+          <!-- <h2 style="width: 100px">搜索</h2> -->
           <el-autocomplete
             v-model="selectedTags"
             placeholder="输入名称"
@@ -50,7 +50,7 @@
           />
         </div>
         <div class="SelectContent">
-          <h2 style="width: 100px">分辨率</h2>
+          <!-- <h2 style="width: 100px">分辨率</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedResolution"
@@ -191,10 +191,13 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .ColumnSelect {
-  width: 90%;
+  width: 50%;
   margin: auto;
+  margin-top: 10px;
   height: 50%;
   background: transparent;
+  // background-color: rgb(241 61 7 / 52%);
+  border-radius: 50px;
   z-index: 2;
   ::v-deep .el-autocomplete .el-input__inner::placeholder {
     color: #fff;
@@ -217,7 +220,7 @@ onMounted(() => {
       color: #fff;
     }
     width: 174px;
-    height: 68px;
+    height: 48px;
     display: flex;
     justify-content: center;
     align-items: center;

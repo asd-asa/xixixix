@@ -26,7 +26,6 @@
         object-fit: fill;
         object-position: center center;
         pointer-events: none;
-        /* 优化：开启 GPU 合成，减少重绘抖动 */
         will-change: transform, opacity;
         transform: translate(-50%, -50%) translateZ(0);
         -webkit-transform: translate(-50%, -50%) translateZ(0);
@@ -37,7 +36,7 @@
   </head>
   <body>
     <div class="bg-video" aria-hidden="true">
-      <video
+      <!-- <video
         class="bg-video__video"
         autoplay
         muted
@@ -46,7 +45,8 @@
         preload="auto"
       >
         <source src="/src/assets/static/ying.mp4" type="video/mp4" />
-      </video>
+      </video> -->
+      <img src="/src/assets/static/1.png" alt="">
     </div>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
