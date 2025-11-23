@@ -1,3 +1,74 @@
+<template>
+    <div class="upload-wallpapers">
+        <div class="upload-wallpapers__title">图片上传</div>
+        <el-form style="min-width: 400px" status-icon label-width="auto"  class="demo-ruleForm">
+            <el-form-item label="图片名称">
+                <el-input  type="text"  autocomplete="off" v-model="title"/>
+            </el-form-item>
+            <el-form-item label="图片分类">
+                <el-select  
+                 allow-create
+                 clearable 
+                 v-model="category" 
+                 filterable 
+                 placeholder="图片分类" >
+                    <el-option v-for="item in categories"  :label="item.label" :value="item.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="图片描述">
+                <el-input type="text" autocomplete="off" v-model="description" placeholder="图片描述" />
+            </el-form-item>
+            <el-form-item label="图片标签">
+                <el-select 
+                v-model="tags"
+                multiple 
+                filterable 
+                allow-create 
+                default-first-option 
+                :reserve-keyword="false"
+                placeholder="图片标签" >
+                <el-option v-for="item in classifyTags"  :label="item.label" :value="item.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="图片预览">
+                <!-- 限制上传预览区域高度，内容过多时出现内部滚动 -->
+                <div class="upload-preview">
+                    <el-upload
+                        drag
+                        multiple
+                        :limit="50"
+                        :auto-upload="false"
+                        list-type="picture-card"
+                        :file-list="selectedFiles"
+                        :on-change="handleFileChange"
+                        :on-remove="handleFileRemove"
+                        :on-preview="handleFilePreview"
+                        accept="image/*"
+                    >
+                        <el-icon>
+                            <Plus />
+                        </el-icon>
+                    </el-upload>
+
+                    <!-- 图片预览对话框 -->
+                    <el-dialog v-model="dialogVisible" title="图片预览">
+                        <img :src="previewImage" style="width: 100%;" alt="Preview Image" />
+                    </el-dialog>
+                </div>
+
+            </el-form-item>
+            <div class="upload-wallpapers__btns">
+                <el-button type="primary" @click="handleFileUpload">上传图片</el-button>
+                <el-button type="danger" @click="resetUpload" style="margin-left: 60px;">重置</el-button>
+                <!-- 退出登录 -->
+                <el-button type="warning" @click="logout" style="margin-left: 60px;"  v-if="hasToken">退出登录</el-button>
+            </div>
+            
+        </el-form>
+    </div>
+
+</template>
+
 <script setup lang="ts">
 //上传多张图片
 import { onMounted, ref } from 'vue'
@@ -137,80 +208,12 @@ onMounted(() => {
 });
 </script>
 
-<template>
-    <div class="upload-wallpapers">
-        <el-form style="min-width: 400px" status-icon label-width="auto"  class="demo-ruleForm">
-            <el-form-item label="图片名称">
-                <el-input  type="text"  autocomplete="off" v-model="title"/>
-            </el-form-item>
-            <el-form-item label="图片分类">
-                <el-select  
-                 allow-create
-                 clearable 
-                 v-model="category" 
-                 filterable 
-                 placeholder="图片分类" >
-                    <el-option v-for="item in categories"  :label="item.label" :value="item.value" />
-                </el-select>
-            </el-form-item>
-            <el-form-item label="图片描述">
-                <el-input type="text" autocomplete="off" v-model="description" placeholder="图片描述" />
-            </el-form-item>
-            <el-form-item label="图片标签">
-                <el-select 
-                v-model="tags"
-                multiple 
-                filterable 
-                allow-create 
-                default-first-option 
-                :reserve-keyword="false"
-                placeholder="图片标签" >
-                <el-option v-for="item in classifyTags"  :label="item.label" :value="item.value" />
-                </el-select>
-            </el-form-item>
-            <el-form-item label="图片预览">
-                <!-- 限制上传预览区域高度，内容过多时出现内部滚动 -->
-                <div class="upload-preview">
-                    <el-upload
-                        drag
-                        multiple
-                        :limit="50"
-                        :auto-upload="false"
-                        list-type="picture-card"
-                        :file-list="selectedFiles"
-                        :on-change="handleFileChange"
-                        :on-remove="handleFileRemove"
-                        :on-preview="handleFilePreview"
-                        accept="image/*"
-                    >
-                        <el-icon>
-                            <Plus />
-                        </el-icon>
-                    </el-upload>
-
-                    <!-- 图片预览对话框 -->
-                    <el-dialog v-model="dialogVisible" title="图片预览">
-                        <img :src="previewImage" style="width: 100%;" alt="Preview Image" />
-                    </el-dialog>
-                </div>
-
-            </el-form-item>
-            <div class="upload-wallpapers__btns">
-                <el-button type="primary" @click="handleFileUpload">上传图片</el-button>
-                <el-button type="danger" @click="resetUpload" style="margin-left: 60px;">重置</el-button>
-                <!-- 退出登录 -->
-                <el-button type="warning" @click="logout" style="margin-left: 60px;"  v-if="hasToken">退出登录</el-button>
-            </div>
-            
-        </el-form>
-    </div>
-
-</template>
-
 <style scoped lang="scss">
 .upload-wallpapers{
+    border-radius: 17px;
+    background: rgba(44, 100, 146, 0.5);
     margin-top: 20px;
-    height: 100%;
+    height: 70%;
     width: 50%;
     margin:  30px auto 0;
     padding: 0 20px;
@@ -236,6 +239,8 @@ onMounted(() => {
     border: 1px solid rgba(0,0,0,0.04);
     border-radius: 6px;
     background: #fff;
+    scrollbar-width: thin;                /* Firefox: 宽度 */
+    scrollbar-color: rgba(0,0,0,0.06) transparent;
 }
 
 /* 底部按钮保持可见：在页面滚动时尽量固定在视口底部 */
@@ -248,4 +253,10 @@ onMounted(() => {
     z-index: 5;
 }
 
+.upload-wallpapers__title{
+    font-size: 24px;
+    color: #FFF;
+    text-align: center;
+    margin-bottom: 20px;
+}
 </style>

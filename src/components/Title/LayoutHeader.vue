@@ -1,5 +1,4 @@
 <template>
-  <!-- <div class="box1"></div> -->
   <div class="Header">
     <div class="container">
       <div class="Column">
@@ -16,23 +15,32 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import logoMain from '@/assets/images/bianmu.png';
 import logoHome from '../../assets/images/luffy.png';
 
-const currentRoute = ref('/'); // 当前路由状态
-const currentImg = ref(logoMain);
 const router = useRouter();
+const route = useRoute();
+
+// 初始根据当前路由决定显示的图片
+const currentRoute = ref(route.path);
+const currentImg = ref(route.path === '/my' ? logoHome : logoMain);
+
+// 跟踪路由变化，保持图片与路由一致（刷新后不会错误切换）
+watch(
+  () => route.path,
+  (p) => {
+    currentRoute.value = p;
+    currentImg.value = p === '/my' ? logoHome : logoMain;
+  }
+);
 
 const handleLogoClick = async () => {
+  // 只负责导航，图片/状态由上面的 watch 自动同步
   if (currentRoute.value === '/my') {
-    currentRoute.value = '/';
-    currentImg.value = logoMain;
     await router.push('/');
   } else {
-    currentRoute.value = '/my';
-    currentImg.value = logoHome;
     await router.push('/my');
   }
 };

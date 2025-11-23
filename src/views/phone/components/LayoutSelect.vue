@@ -3,7 +3,6 @@
     <div class="container">
       <div class="ColumnSelectTitle">
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">分类</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedCategory"
@@ -21,7 +20,6 @@
           </el-select>
         </div>
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">壁纸类型</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedType"
@@ -38,7 +36,6 @@
           </el-select>
         </div>
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">搜索</h2> -->
           <el-autocomplete
             v-model="selectedTags"
             placeholder="输入名称"
@@ -50,7 +47,6 @@
           />
         </div>
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">分辨率</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedResolution"
@@ -76,10 +72,10 @@
 import { ref, defineEmits, onMounted } from "vue";
 import { getClassifyDetail } from "@/api/title";
 import { searchWallpapers } from "@/api/wallpapers";
-import { useRouter } from "vue-router";
+import { useRouter } from "vue-router"; 
+const router = useRouter();  
 
 const classifyDetail = ref([]); // 分类详情数据
-const router = useRouter();   
 
 // 分类选项
 const categories = ref([]);
@@ -167,7 +163,7 @@ const selectedCategory = ref("");
 // 搜索框的值
 const selectedTags = ref("");
 // 选中的类型
-const selectedType = ref("computer");
+const selectedType = ref("mobile");
 // 向父组件传递分类数据
 const emit = defineEmits([
   "categoryChange",
@@ -179,8 +175,8 @@ const handleCategoryChange = () => {
   emit("categoryChange", selectedCategory.value); // 触发事件，将分类数据传递给父组件
 };
 const handleimgCategoryChange = () => {
-   if (selectedType.value === "mobile") {
-    router.push("/phone");
+if (selectedType.value === "computer") {
+    router.push("/");
     return
   }else if (selectedType.value === "avatar") {
     router.push("/setting");

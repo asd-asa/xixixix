@@ -167,7 +167,7 @@ const selectedCategory = ref("");
 // 搜索框的值
 const selectedTags = ref("");
 // 选中的类型
-const selectedType = ref("computer");
+const selectedType = ref("avatar");
 // 向父组件传递分类数据
 const emit = defineEmits([
   "categoryChange",
@@ -182,8 +182,8 @@ const handleimgCategoryChange = () => {
    if (selectedType.value === "mobile") {
     router.push("/phone");
     return
-  }else if (selectedType.value === "avatar") {
-    router.push("/setting");
+  }else if (selectedType.value === "computer") {
+    router.push("/");
     return
   }
   emit("imgCategoryChange", selectedType.value); // 触发事件，将类型数据传递给父组件

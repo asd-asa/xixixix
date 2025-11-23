@@ -53,6 +53,8 @@ ul {
   }
   color: #FFF !important;
   background: transparent !important;
+  border: 2px solid #FFF !important;
+  border-radius: 50% !important;
 }
 .btn-prev{
   .el-icon{
@@ -60,18 +62,26 @@ ul {
   }
   color: #FFF !important;
   background: transparent !important;
+  border: 2px solid #FFF !important;
+  border-radius: 50% !important;
 }
 .number{
    color: #FFF !important;
   background: transparent !important  ;
+  border: 2px solid #FFF !important;
+  border-radius: 50% !important;
 }
 .btn-quicknext{
   color: #FFF !important;
   background: transparent !important;
+  border: 2px solid #FFF !important;
+  border-radius: 50% !important;
 }
 .btn-quickprev{
   color: #FFF !important;
   background: transparent !important;
+  border: 2px solid #FFF !important;
+  border-radius: 50% !important;
 }
 .el-input__inner{
   color: #FFF ;
@@ -118,4 +128,25 @@ ul {
 }
 html {
   overflow-y: hidden;
+}
+.btn-next:hover,
+.btn-prev:hover,
+.btn-quicknext:hover,
+.btn-quickprev:hover,
+.number:hover,
+.number.is-active {
+  transform: translateY(-1px) scale(1.04); 
+  background:
+    radial-gradient(
+      circle at 30% 20%,
+      rgba(255, 255, 255, 0.8),
+      rgba(255, 255, 255, 0.12)
+    ) !important;
+
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.45), 
+    0 0 0 1px rgba(255, 255, 255, 0.35),  
+    0 8px 18px rgba(0, 0, 0, 0.6),       
+    inset 0 0 8px rgba(0, 0, 0, 0.35),   
+    inset 0 0 20px rgba(255, 255, 255, 0.35); 
 }

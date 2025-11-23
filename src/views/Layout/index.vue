@@ -6,6 +6,7 @@
       @searchChange="handleSearchChange"
       @imgCategoryChange="handleimgCategoryChange"
     />
+    <div class="contentdiv">
     <LayoutContent
       :wallpapers="wallpapers"
       @refresh="handleRefresh"
@@ -19,6 +20,7 @@
       :mediaType="selectedType"
       @update-page="handlePageChange"
     />
+    </div>
   </el-scrollbar>
 </template>
 
@@ -40,6 +42,11 @@ const pageSize = ref(9); // 每页大小
 
 const fetchWallpapers = async (append = false) => {
   try {
+     if (selectedType.value === "mobile") {
+      pageSize.value = 12;
+    } else {
+      pageSize.value = 9;
+    }
     const response = await getWallpapersPage(
       selectedCategory.value,
       currentPage.value,
@@ -62,13 +69,6 @@ const fetchWallpapers = async (append = false) => {
     }
   }
 };
-
-// 初次加载
-onMounted(() => {
-  // currentPage.value = 1;
-  // fetchWallpapers(false);
-});
-
 // 处理子组件发出的 loadMore 事件：加载下一页并追加
 const handleLoadMore = () => {
   currentPage.value += 1;
@@ -117,9 +117,14 @@ const handlePageChange = ({ page, pageSize: newPageSize }) => {
   pageSize.value = newPageSize;
   fetchWallpapers();
 };
-// onMounted(() => {
-//     fetchWallpapers();
-// });
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.contentdiv{
+  width: 100%;
+  min-height: 93vh;
+  // box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+</style>
