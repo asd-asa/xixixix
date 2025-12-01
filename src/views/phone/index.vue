@@ -9,6 +9,8 @@
     <div class="contentdiv">
     <LayoutContent
       :wallpapers="wallpapers"
+      :total-count="total"
+      :has-more="hasMore"
       @refresh="handleRefresh"
       @loadMore="handleLoadMore"
       @deleted="handleDeleted"
@@ -28,7 +30,7 @@
 import LayoutSelect from "./components/LayoutSelect.vue";
 import LayoutContent from "./components/LayoutContent.vue";
 import LayoutFoot from "./components/LayoutFoot.vue";
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import { getWallpapersPage } from "@/api/wallpapers.js"; 
 
 const wallpapers = ref([]); // 存储壁纸数据
@@ -39,6 +41,17 @@ const selectedTags = ref(""); // 搜索框的值
 const selectedType = ref(""); // 当前选择的类型
 const currentPage = ref(1); // 当前页码
 const pageSize = ref(9); // 每页大小
+
+// 计算总页数和是否还有更多
+const totalPages = computed(() => {
+  const ps = pageSize.value || 1;
+  return Math.max(0, Math.ceil((total.value || 0) / ps));
+});
+
+const hasMore = computed(() => {
+  // 当 totalPages 为 0 时，表示暂无数据；只有 currentPage < totalPages 时才有更多
+  return currentPage.value < totalPages.value;
+});
 
 const fetchWallpapers = async (append = false) => {
   try {
@@ -71,6 +84,8 @@ const fetchWallpapers = async (append = false) => {
 };
 // 处理子组件发出的 loadMore 事件：加载下一页并追加
 const handleLoadMore = () => {
+  // 防止超页：只有在还有更多页时才请求下一页
+  if (!hasMore.value) return;
   currentPage.value += 1;
   fetchWallpapers(true);
 };

@@ -1,8 +1,6 @@
 <template>
   <div class="LayoutContent">
-    <div class="container">
       <div class="ContentList">
-        <!-- 瀑布流（JS 列布局）：mobile -->
         <div v-if="masonryWallpapers.length" class="masonry-columns">
           <template v-for="i in columnCount" :key="i">
             <div class="masonry-column">
@@ -18,6 +16,9 @@
                     v-img-lazy="item.image_url"
                     :alt="item.title"
                     loading="lazy"
+                    :class="{ 'is-loaded': imageLoadedMap[item.id] }"
+                    @load="handleImageLoad(item.id)"
+                    @error="handleImageLoad(item.id)"
                   />
                   <div class="Popup">
                     <div class="PopupTags">
@@ -30,7 +31,6 @@
                     </div>
                     <div class="PopupContent">
                       <h3>{{ item.title }}</h3>
-
                     </div>
                     <div class="PopupSuccess">
                       <button @click="gotoImg(item.image)">预览</button>
@@ -88,7 +88,6 @@
           </el-image-viewer>
         </div>
       </div>
-    </div>
   </div>
 </template>
 
@@ -118,7 +117,16 @@ const emit = defineEmits<{
   (e: "refresh"): void;
   (e: "loadMore"): void;
   (e: "deleted", id: number): void;
+  (e: "imagesLoaded"): void;
 }>();
+const overlayVisible = ref(true); // 初始显示蒙版
+const overlayHidden = ref(false); // 用于触发 CSS 隐藏过渡
+const totalImages = ref(0);
+const loadedImages = ref(0);
+// 每张图是否已加载的 map，key 为 item.id
+const imageLoadedMap = ref<Record<number, boolean>>({});
+const preloaderImgs = ref<HTMLImageElement[]>([]); // 用于跟踪并可取消的预加载 Image 对象
+
 
 // 控制弹窗的显示和内容
 const showPopup = ref(false); // 是否显示弹窗
@@ -140,20 +148,98 @@ interface Wallpaper {
 }
 const props = defineProps<{
   wallpapers: Wallpaper[];
+  // 父组件可选传入：总条数（用于判断是否已到最后一页）
+  totalCount?: number;
+  // 父组件可选传入：显式标记是否还有更多页
+  hasMore?: boolean;
 }>();
 const route = useRoute();
+// 取消并清理未完成的预加载
+function cancelPreload() {
+  preloaderImgs.value.forEach((img) => {
+    img.onload = null;
+    img.onerror = null;
+    // 无法真正 abort Image()，但移除回调防止内存泄漏
+  });
+  preloaderImgs.value = [];
+}
+
+// 当所有图片加载或出错后调用
+function allLoadedDone() {
+  // 给出短延迟以便过渡
+  setTimeout(() => {
+    overlayHidden.value = true;
+    setTimeout(() => {
+      overlayVisible.value = false;
+      emit("imagesLoaded");
+      window.dispatchEvent(new CustomEvent("imagesLoaded"));
+    }, 500);
+  }, 120);
+}
 watch(
   () => props.wallpapers,
   (newWallpapers) => {
-    // 直接从 props 初始化 srcList
-    srcList.value = newWallpapers.map((item) => item.image);
+    // 先清理之前的预加载和状态
+    cancelPreload();
+    const list = newWallpapers || [];
+    totalImages.value = list.length;
+    loadedImages.value = 0;
+    imageLoadedMap.value = {};
+
+    // 生成 srcList（用于预览）
+    srcList.value = list.map((i: any) => i.image);
+
+    if (totalImages.value === 0) {
+      hideOverlayImmediate();
+      return;
+    } else {
+      overlayVisible.value = true;
+      overlayHidden.value = false;
+    }
+
+    // 开始 JS 预加载（独立于模板上的 img load）
+    list.forEach((item: any) => {
+      const img = new Image();
+      preloaderImgs.value.push(img);
+      img.onload = () => {
+        if (!imageLoadedMap.value[item.id]) {
+          imageLoadedMap.value[item.id] = true;
+          if (loadedImages.value < totalImages.value) loadedImages.value++;
+        }
+        if (loadedImages.value >= totalImages.value) allLoadedDone();
+      };
+      img.onerror = () => {
+        // 把失败也当作“已触发”，避免因 1 张坏图卡住蒙版
+        if (!imageLoadedMap.value[item.id]) {
+          imageLoadedMap.value[item.id] = true;
+          if (loadedImages.value < totalImages.value) loadedImages.value++;
+        }
+        if (loadedImages.value >= totalImages.value) allLoadedDone();
+      };
+            // 优先用 image_url；若无则用 image 字段
+      img.src = item.image_url || item.image || "";
+    });
   },
   { immediate: true }
 );
+// 仍保留对模板 img 的兼容处理（防止指令直接触发）
+const handleImageLoad = (id?: number) => {
+  // 支持作为直接事件处理（被模板 @load 调用）
+  if (typeof id === "number") {
+    if (!imageLoadedMap.value[id]) {
+      imageLoadedMap.value[id] = true;
+      if (loadedImages.value < totalImages.value) loadedImages.value++;
+    }
+    if (loadedImages.value >= totalImages.value) allLoadedDone();
+  }
+};
+function hideOverlayImmediate() {
+  overlayHidden.value = true;
+  overlayVisible.value = false;
+  emit("imagesLoaded");
+}
 // 新增：把 mobile 与其他类型分开
-const masonryWallpapers = computed(
-  () => props.wallpapers?.filter((p) => p.media_type === "mobile") || []
-);
+const masonryWallpapers = computed(() => props.wallpapers);
 const preloadImage = (url: string) => {
   const img = new Image();
   img.src = url;
@@ -310,9 +396,9 @@ let scrollTimer: number | null = null;
 const loadingMore = ref(false);
 const userTriggeredScroll = ref(false);
 const prevLen = ref((props.wallpapers && props.wallpapers.length) || 0);
-// 触发加载的滚动比例（达到该比例时触发 loadMore），0.5 = 50%
-const loadTriggerRatio = 0.5;
-const handleScrollEvent = () => onScroll(true);
+  // 当距离底部小于此像素阈值时触发加载（改为“快到底部以后再加载”）
+  const bottomThreshold = 300; // px
+  const handleScrollEvent = () => onScroll(true);
 
 // 绑定/解绑滚动监听的辅助函数
 const attachScroll = async () => {
@@ -407,19 +493,26 @@ const onScroll = (isUserInitiated = false) => {
     const scrollHeight = sc.scrollHeight;
     const distanceToBottom = scrollHeight - (scrollTop + clientHeight);
 
-    // 计算当前滚动比例（0 - 1），当滚动位置达到或超过 loadTriggerRatio 时提前触发加载
-    const maxScrollable = Math.max(scrollHeight - clientHeight, 1);
-    const scrollRatio = scrollTop / maxScrollable;
+    // 触发条件：仅在接近底部时触发（避免在页面中段过早加载）
+    if (!loadingMore.value && distanceToBottom <= bottomThreshold) {
+      // 若父组件显式标记无更多则不触发
+      if (props.hasMore === false) {
+        clearTimeout(scrollTimer!);
+        scrollTimer = null;
+        return;
+      }
 
-    // 触发条件：达到滚动比例阈值（例如 50%）或仍然接近底部（兼容短页）
-    if (
-      !loadingMore.value &&
-      (scrollRatio >= loadTriggerRatio || distanceToBottom <= 200)
-    ) {
+      // 若父组件传入 totalCount，且已加载数量 >= totalCount，则认为已到最后一页
+      const loadedCount = props.wallpapers ? props.wallpapers.length : 0;
+      if (typeof props.totalCount === "number" && loadedCount >= props.totalCount) {
+        clearTimeout(scrollTimer!);
+        scrollTimer = null;
+        return;
+      }
+
       loadingMore.value = true;
       emit("loadMore");
     }
-
     clearTimeout(scrollTimer!);
     scrollTimer = null;
   }, 150);
@@ -448,7 +541,7 @@ watch(
 // 监听 mobile 列表变化
 watch(masonryWallpapers, async (list) => {
   await attachScroll();
-  const newLen = (list || []).length; 
+  const newLen = (list || []).length;
   const currCols = getColumnCount();
   if (newLen < prevMasonryLenMobile || currCols !== columnCount.value) {
     await rebuildColumnsFor(
@@ -573,13 +666,12 @@ const download = (index) => {
   margin-top: 15px;
   background: transparent;
   margin: 0 auto;
-  .container {
+  .ContentList {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-  }
-  /* 瀑布流样式 */
+    /* 瀑布流样式 */
   /* JS-driven masonry columns */
   .masonry-columns {
     display: flex;
@@ -587,7 +679,6 @@ const download = (index) => {
     width: 95%;
     align-items: flex-start;
   }
-
   .masonry-column {
     flex: 1 1 0;
     display: flex;
@@ -598,23 +689,6 @@ const download = (index) => {
   .masonry-item {
     width: 100%;
   }
-  .Content-mobile {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    display: block;
-    width: 100%;
-  }
-
-  .Content-mobile img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 6px;
-    object-fit: cover;
-  }
-
-  /* 响应式：窄屏列数改为 1，宽屏可为 3 列 */
   @media (min-width: 1000px) {
     .masonry {
       column-count: 3;
@@ -627,15 +701,14 @@ const download = (index) => {
       column-gap: 8px;
     }
   }
-  .ContentList {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
 
     .Content-mobile {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       position: relative;
       height: 100%;
+      width: 100%;
       border-radius: 10px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
@@ -655,21 +728,17 @@ const download = (index) => {
         border-radius: 10px;
       }
 
-      /* 弹窗 */
+      /* 弹窗（深色主题） */
       .Popup {
         width: 80%;
-        /* 弹窗宽度为图片的 70% */
         height: 80%;
-        /* 弹窗高度为图片的 70% */
         position: absolute;
         top: 50%;
-        /* 定位到图片中心 */
+
         left: 50%;
-        /* 定位到图片中心 */
         transform: translate(-50%, 50%);
-        /* 确保中心点对齐 */
-        background-color: rgba(255, 255, 255, 0.75);
-        color: #1a1919;
+        background-color: rgba(0, 0, 0, 0.55);
+        color: #f3f3f3;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -677,28 +746,23 @@ const download = (index) => {
         padding: 10px;
         border-radius: 10px;
         font-size: 14px;
-        // pointer-events: none; /* 防止鼠标与弹窗交互 */
         z-index: 10;
         white-space: nowrap;
         opacity: 0;
-        /* 初始透明度为 0 */
         transition: transform 0.3s ease, opacity 0.3s ease;
-
-        /* 添加动画效果 */
-        /* 鼠标悬浮时启用鼠标事件 */
 
         span {
           height: 30px;
-          border: 3px solid #ccc;
+          border: 2px solid rgba(255, 255, 255, 0.12);
           border-radius: 30px;
           font-size: 12px;
-          color: #1a1919;
+          color: #f3f3f3;
           margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
-          font-weight: bold;
-          /* 标签加粗 */
+          font-weight: 600;
           margin-right: 5px;
-          /* 标签之间的间距 */
+          padding: 0 8px;
+          display: inline-flex;
+          align-items: center;
         }
 
         .PopupTags {
@@ -722,12 +786,6 @@ const download = (index) => {
           h3 {
             font-size: 16px;
             margin-bottom: 5px;
-            /* 标题和描述之间的间距 */
-          }
-
-          p {
-            font-size: 14px;
-            color: #666;
           }
         }
 
@@ -738,24 +796,21 @@ const download = (index) => {
           align-items: center;
           gap: 15px;
 
-          /* 按钮和描述之间的间距 */
           button {
             cursor: pointer;
             width: 70%;
             height: 30%;
-            background-color: #ece9e9;
-            color: #666;
+            background-color: rgba(0, 0, 0, 0.28);
+            color: #f3f3f3;
             border: none;
             border-radius: 25px;
-            cursor: pointer;
             font-size: 14px;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.18s ease, transform 0.12s ease;
 
             &:hover {
-              background-color: #ece9e9;
-              /* 悬浮时颜色变化 */
+              background-color: rgba(0, 0, 0, 0.36);
+              transform: translateY(-2px);
               pointer-events: auto;
-              /* 启用鼠标事件 */
             }
           }
         }
@@ -818,7 +873,7 @@ const download = (index) => {
       }
     }
 
-    .image-bar {
+      .image-bar {
       position: absolute;
       bottom: 20px;
       left: 50%;
@@ -826,10 +881,10 @@ const download = (index) => {
       display: flex;
       justify-content: center;
       align-items: center;
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: rgba(0, 0, 0, 0.55);
       padding: 10px;
       border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
       z-index: 1001;
 
       .image-bar__btns {
@@ -837,32 +892,120 @@ const download = (index) => {
         justify-content: center;
         align-items: center;
         gap: 10px;
-
-        &:hover {
-          background-color: #f0f0f0;
-          /* 悬浮时颜色变化 */
-          pointer-events: auto;
-          /* 启用鼠标事件 */
-        }
       }
 
       .el-button {
-        background-color: #fff;
-        color: #000;
+        background-color: rgba(0, 0, 0, 0.28);
+        color: #f3f3f3;
         border: none;
         padding: 10px 20px;
         border-radius: 5px;
         cursor: pointer;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.18s ease, transform 0.12s ease;
 
         &:hover {
-          background-color: #f0f0f0;
-          /* 悬浮时颜色变化 */
-          pointer-events: auto;
-          /* 启用鼠标事件 */
+          background-color: rgba(0, 0, 0, 0.56);
+          transform: translateY(-2px);
         }
       }
     }
   }
 }
+.ImagesOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.65));
+  color: #fff;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  opacity: 1;
+  pointer-events: all;
+
+  .overlay-inner {
+    text-align: center;
+    padding: 20px;
+    backdrop-filter: blur(6px) saturate(120%);
+    border-radius: 12px;
+  }
+  .spinner {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #fff;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  }
+
+  .progress {
+    font-size: 14px;
+    opacity: 0.95;
+  }
+}
+
+/* 隐藏过渡（先触发淡出）*/
+.ImagesOverlay--hidden {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.995);
+  pointer-events: none;
+}
+/* 图片加载特效：初始显示渐变占位并带轻微模糊/缩放，加载完成平滑过渡到清晰 */
+img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+  /* 更短的过渡与更自然的缓动 */
+  transition: filter 420ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 300ms ease;
+
+  /* 初始占位：模糊 + 缩放 + 流光背景（浅黑色调） */
+  filter: blur(10px) saturate(0.95);
+  transform: scale(1.04);
+  opacity: 0.98;
+  background: linear-gradient(90deg, #121212 25%, #1e1e1e 50%, #121212 75%);
+  background-size: 200% 100%;
+  animation: placeholderShimmer 1.6s linear infinite;
+}
+
+/* 图片加载完成：清晰、复位缩放并关闭占位动画 */
+img.is-loaded {
+  filter: none;
+  transform: scale(1);
+  opacity: 1;
+  background: transparent;
+  animation: none;
+}
+
+/* 旋转动画保留用于蒙版 spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 占位流光动画 */
+@keyframes placeholderShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 无动画偏好时禁用动画（无障碍友好） */
+@media (prefers-reduced-motion: reduce) {
+  img,
+  .spinner {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 </style>

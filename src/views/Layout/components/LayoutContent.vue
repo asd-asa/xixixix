@@ -1,161 +1,78 @@
 <template>
   <div class="LayoutContent">
-    <div class="container">
-      <div class="ContentList">
-        <!-- 瀑布流（JS 列布局）：mobile -->
-        <div v-if="masonryWallpapers.length" class="masonry-columns">
-          <template v-for="i in columnCount" :key="i">
-            <div class="masonry-column">
-              <div
-                class="masonry-item"
-                v-for="item in columnsMobile[i - 1] || []"
-                :key="item.id"
-                @mouseenter="(event) => handleMouseEnter(event, item.title)"
-                @mouseleave="handleMouseLeave"
-              >
-                <div class="Content-mobile">
-                  <img
-                    v-img-lazy="item.image_url"
-                    :alt="item.title"
-                    loading="lazy"
-                  />
-                  <div class="Popup">
-                    <div class="PopupTags">
-                      <span
-                        v-for="(tag, index) in parseTags(item.tags)"
-                        :key="index"
-                      >
-                        {{ tag }}
-                      </span>
-                    </div>
-                    <div class="PopupContent">
-                      <h3>{{ item.title }}</h3>
-
-                    </div>
-                    <div class="PopupSuccess">
-                      <button @click="gotoImg(item.image)">预览</button>
-                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
-                        删除
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+    <div class="ContentList">
+      <div v-for="item in otherWallpapers" :key="item.id" class="Content-box">
+        <!-- 电脑壁纸 -->
+        <div class="Content">
+          <img
+            v-img-lazy="item.image_url"
+            :alt="item.title"
+            loading="lazy"
+            :class="{ 'is-loaded': imageLoadedMap[item.id] }"
+            @load="handleImageLoad(item.id)"
+            @error="handleImageLoad(item.id)"
+          />
+          <!-- 弹窗 -->
+          <div class="Popup">
+            <!-- 遍历标签 -->
+            <div class="PopupTags">
+              <span v-for="(tag, index) in parseTags(item.tags)" :key="index">
+                {{ tag }}
+              </span>
             </div>
-          </template>
-        </div>
-
-        <div class="grid" v-if="otherWallpapers.length">
-          <div
-            v-for="item in otherWallpapers"
-            :key="item.id"
-            :class="item.media_type === 'avatar' ? 'Content-box-avatar' : 'Content-box'"
-            @mouseenter="(event) => handleMouseEnter(event, item.title)"
-            @mouseleave="handleMouseLeave"
-          >
-            <!-- 电脑壁纸 -->
-            <div v-if="item.media_type === 'computer'" class="Content">
-              <img
-                v-img-lazy="item.image_url"
-                :alt="item.title"
-                loading="lazy"
-              />
-              <!-- 弹窗 -->
-              <div class="Popup">
-                <!-- 遍历标签 -->
-                <div class="PopupTags">
-                  <span
-                    v-for="(tag, index) in parseTags(item.tags)"
-                    :key="index"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-                <div class="PopupContent">
-                  <h3>{{ item.title }}</h3>
-                </div>
-                <div class="PopupSuccess">
-                  <button @click="gotoImg(item.image)">预览</button>
-                  <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
-                    删除
-                  </button>
-                </div>
-              </div>
+            <div class="PopupContent">
+              <h3>{{ item.title }}</h3>
             </div>
-            <!-- 头像壁纸 -->
-            <div
-              v-else-if="item.media_type === 'avatar'"
-              class="Content-avatar"
-            >
-              <img
-                v-img-lazy="item.image_url"
-                :alt="item.title"
-                loading="lazy"
-              />
-              <div class="Popup">
-                <div class="PopupTags">
-                  <span
-                    v-for="(tag, index) in parseTags(item.tags)"
-                    :key="index"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-                <div class="PopupContent">
-                  <h3>{{ item.title }}</h3>
-                </div>
-                <div class="PopupSuccess">
-                  <button @click="gotoImg(item.image)">预览</button>
-                  <button @click="deleteWallpaper(item.id)">删除</button>
-                </div>
-              </div>
+            <div class="PopupSuccess">
+              <button @click="gotoImg(item.image)">预览</button>
+              <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
+                删除
+              </button>
             </div>
           </div>
         </div>
-        <div v-if="showPreview" class="PreviewOverlay">
-          <el-image-viewer
-            v-if="showPreview"
-            :url-list="srcList"
-            @close="showPreview = false"
-            show-progress
-          >
-            <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
-              <el-icon @click="setActiveItem(srcList.length - 1)">
-                <DArrowRight />
-              </el-icon>
-              <el-icon @click="actions('zoomOut')">
-                <ZoomOut />
-              </el-icon>
-              <el-icon
-                @click="
-                  actions('zoomIn', { enableTransition: false, zoomRate: 2 })
-                "
-              >
-                <ZoomIn />
-              </el-icon>
-              <el-icon
-                @click="
-                  actions('clockwise', {
-                    rotateDeg: 180,
-                    enableTransition: false,
-                  })
-                "
-              >
-                <RefreshRight />
-              </el-icon>
-              <el-icon @click="actions('anticlockwise')">
-                <RefreshLeft />
-              </el-icon>
-              <el-icon @click="reset">
-                <Refresh />
-              </el-icon>
-              <el-icon @click="download(activeIndex)">
-                <Download />
-              </el-icon>
-            </template>
-          </el-image-viewer>
-        </div>
       </div>
+    </div>
+    <div v-if="showPreview" class="PreviewOverlay">
+      <el-image-viewer
+        v-if="showPreview"
+        :url-list="srcList"
+        @close="showPreview = false"
+        show-progress
+      >
+        <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
+          <el-icon @click="setActiveItem(srcList.length - 1)">
+            <DArrowRight />
+          </el-icon>
+          <el-icon @click="actions('zoomOut')">
+            <ZoomOut />
+          </el-icon>
+          <el-icon
+            @click="actions('zoomIn', { enableTransition: false, zoomRate: 2 })"
+          >
+            <ZoomIn />
+          </el-icon>
+          <el-icon
+            @click="
+              actions('clockwise', {
+                rotateDeg: 180,
+                enableTransition: false,
+              })
+            "
+          >
+            <RefreshRight />
+          </el-icon>
+          <el-icon @click="actions('anticlockwise')">
+            <RefreshLeft />
+          </el-icon>
+          <el-icon @click="reset">
+            <Refresh />
+          </el-icon>
+          <el-icon @click="download(activeIndex)">
+            <Download />
+          </el-icon>
+        </template>
+      </el-image-viewer>
     </div>
   </div>
 </template>
@@ -170,382 +87,170 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
-import {
-  ref,
-  defineProps,
-  watch,
-  onMounted,
-  computed,
-  onBeforeUnmount,
-  nextTick,
-} from "vue";
-import { useRoute } from "vue-router";
+import { ref, defineProps, watch, computed } from "vue";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
 
-const emit = defineEmits<{
-  (e: "refresh"): void;
-  (e: "loadMore"): void;
-  (e: "deleted", id: number): void;
-}>();
+const emit = defineEmits(["deleted", "imagesLoaded"]);
 
-// 控制弹窗的显示和内容
-const showPopup = ref(false); // 是否显示弹窗
-const popupContent = ref(""); // 弹窗内容（标签名）
-const popupPosition = ref({ x: 0, y: 0 }); // 弹窗位置
-const srcList = ref([]); // 存储图片地址列表
-// 全屏预览相关状态
-const showPreview = ref(false); // 是否显示全屏预览
-const previewImage = ref(""); // 当前预览的图片
+const overlayVisible = ref(true); // 初始显示蒙版
+const overlayHidden = ref(false); // 用于触发 CSS 隐藏过渡
+const totalImages = ref(0);
+const loadedImages = ref(0);
+// 每张图是否已加载的 map，key 为 item.id
+const imageLoadedMap = ref<Record<number, boolean>>({});
+const preloaderImgs = ref<HTMLImageElement[]>([]); // 用于跟踪并可取消的预加载 Image 对象
+
+
+const srcList = ref([]);
+const showPreview = ref(false);
+const previewImage = ref("");
+
 interface Wallpaper {
   id: number;
   image: string;
-  image_url: string; // 图片地址
+  image_url: string;
   media_type: string;
   title: string;
   description?: string;
   tags?: any;
   downloads?: number;
 }
+
 const props = defineProps<{
   wallpapers: Wallpaper[];
 }>();
-const route = useRoute();
+
+// 取消并清理未完成的预加载
+function cancelPreload() {
+  preloaderImgs.value.forEach((img) => {
+    img.onload = null;
+    img.onerror = null;
+    // 无法真正 abort Image()，但移除回调防止内存泄漏
+  });
+  preloaderImgs.value = [];
+}
+
+// 当所有图片加载或出错后调用
+function allLoadedDone() {
+  // 给出短延迟以便过渡
+  setTimeout(() => {
+    overlayHidden.value = true;
+    setTimeout(() => {
+      overlayVisible.value = false;
+      emit("imagesLoaded");
+      window.dispatchEvent(new CustomEvent("imagesLoaded"));
+    }, 500);
+  }, 120);
+}
 watch(
   () => props.wallpapers,
   (newWallpapers) => {
-    // 直接从 props 初始化 srcList
-    srcList.value = newWallpapers.map((item) => item.image);
+    // 先清理之前的预加载和状态
+    cancelPreload();
+    const list = newWallpapers || [];
+    totalImages.value = list.length;
+    loadedImages.value = 0;
+    imageLoadedMap.value = {};
+
+    // 生成 srcList（用于预览）
+    srcList.value = list.map((i: any) => i.image);
+
+    if (totalImages.value === 0) {
+      hideOverlayImmediate();
+      return;
+    } else {
+      overlayVisible.value = true;
+      overlayHidden.value = false;
+    }
+
+    // 开始 JS 预加载（独立于模板上的 img load）
+    list.forEach((item: any) => {
+      const img = new Image();
+      preloaderImgs.value.push(img);
+      img.onload = () => {
+        if (!imageLoadedMap.value[item.id]) {
+          imageLoadedMap.value[item.id] = true;
+          if (loadedImages.value < totalImages.value) loadedImages.value++;
+        }
+        if (loadedImages.value >= totalImages.value) allLoadedDone();
+      };
+      img.onerror = () => {
+        // 把失败也当作“已触发”，避免因 1 张坏图卡住蒙版
+        if (!imageLoadedMap.value[item.id]) {
+          imageLoadedMap.value[item.id] = true;
+          if (loadedImages.value < totalImages.value) loadedImages.value++;
+        }
+        if (loadedImages.value >= totalImages.value) allLoadedDone();
+      };
+            // 优先用 image_url；若无则用 image 字段
+      img.src = item.image_url || item.image || "";
+    });
   },
   { immediate: true }
 );
-// 新增：把 mobile 与其他类型分开
-const masonryWallpapers = computed(
-  () => props.wallpapers?.filter((p) => p.media_type === "mobile") || []
-);
-const otherWallpapers = computed(() => {
-  const wallpapers = props.wallpapers?.filter((p) => p.media_type !== "mobile") || [];
-  return wallpapers.map(wallpaper => ({
-    ...wallpaper,
-    imageLoaded: false
-  }));
-});
+// 仍保留对模板 img 的兼容处理（防止指令直接触发）
+const handleImageLoad = (id?: number) => {
+  // 支持作为直接事件处理（被模板 @load 调用）
+  if (typeof id === "number") {
+    if (!imageLoadedMap.value[id]) {
+      imageLoadedMap.value[id] = true;
+      if (loadedImages.value < totalImages.value) loadedImages.value++;
+    }
+    if (loadedImages.value >= totalImages.value) allLoadedDone();
+  }
+};
+function hideOverlayImmediate() {
+  overlayHidden.value = true;
+  overlayVisible.value = false;
+  emit("imagesLoaded");
+}
+// 只展示电脑壁纸
+const otherWallpapers = computed(() => props.wallpapers || []);
+
 const preloadImage = (url: string) => {
   const img = new Image();
   img.src = url;
 };
 
-const parseTags = (t: any) => {
+const parseTags = (tags: any) => {
   try {
-    if (!t) return [];
-    if (Array.isArray(t)) return t;
-    return JSON.parse(t || "[]");
+    if (!tags) return [];
+    if (Array.isArray(tags)) return tags;
+    return JSON.parse(tags || "[]");
   } catch (e) {
     return [];
   }
 };
 
-// --- JS 驱动的瀑布列布局逻辑 ---
-const getColumnCount = () => {
-  const w = window.innerWidth;
-  if (w >= 1400) return 4;
-  if (w >= 1000) return 3;
-  if (w >= 600) return 2;
-  return 1;
-};
-
-const columnCount = ref(getColumnCount());
-const columnsMobile = ref<Array<Wallpaper[]>>([]);
-const columnHeightsMobile = ref<number[]>([]);
-const itemHeights = ref<Record<number, number>>({});
-let masonryContainer: HTMLElement | null = null;
-
-const initColumns = (count: number, colsRef: any, heightsRef: any) => {
-  colsRef.value = Array.from({ length: count }, () => []);
-  heightsRef.value = Array.from({ length: count }, () => 0);
-};
-
-// 通过加载图片并按列宽进行缩放来估算项目高度
-const estimateHeight = (item: Wallpaper, colWidth: number) => {
-  return new Promise<number>((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const naturalW = img.naturalWidth || 1;
-      const naturalH = img.naturalHeight || 1;
-      const scaledH = (naturalH * colWidth) / naturalW;
-      // add approx padding/margins (card padding + gap)
-      resolve(scaledH + 20);
-    };
-    img.onerror = () => resolve(200);
-    img.src = item.image_url;
-  });
-};
-
-// 将单个项目放入当前最短的列中
-const placeItemTo = async (
-  item: Wallpaper,
-  colsRef: any,
-  heightsRef: any,
-  containerSelector = ".masonry-columns"
-) => {
-  if (!masonryContainer)
-    masonryContainer = document.querySelector(
-      containerSelector
-    ) as HTMLElement | null;
-  const containerWidth = masonryContainer
-    ? masonryContainer.clientWidth
-    : window.innerWidth;
-  const gap = 12; // match CSS gap
-  const colCount = columnCount.value || 1;
-  const colWidth = Math.floor(
-    (containerWidth - gap * (colCount - 1)) / colCount
-  );
-  const h = await estimateHeight(item, colWidth);
-  // find shortest column
-  let minIndex = 0;
-  let minH = heightsRef.value[0] || 0;
-  for (let i = 1; i < heightsRef.value.length; i++) {
-    if ((heightsRef.value[i] || 0) < minH) {
-      minH = heightsRef.value[i];
-      minIndex = i;
-    }
-  }
-  colsRef.value[minIndex].push(item);
-  heightsRef.value[minIndex] = (heightsRef.value[minIndex] || 0) + h;
-  itemHeights.value[item.id] = h;
-};
-
-// 批量放置项目（用于初始填充和追加）
-const placeItemsTo = async (
-  items: Wallpaper[],
-  colsRef: any,
-  heightsRef: any,
-  containerSelector = ".masonry-columns"
-) => {
-  for (const it of items) {
-    // eslint-disable-next-line no-await-in-loop
-    await placeItemTo(it, colsRef, heightsRef, containerSelector);
-  }
-};
-
-// 从头重建列（在列数变化或需要重置时使用）
-const rebuildColumnsFor = async (
-  list: Wallpaper[],
-  colsRef: any,
-  heightsRef: any,
-  containerSelector = ".masonry-columns",
-  readyRef: any = null
-) => {
-  const count = getColumnCount();
-  columnCount.value = count;
-  initColumns(count, colsRef, heightsRef);
-  masonryContainer = document.querySelector(
-    containerSelector
-  ) as HTMLElement | null;
-  await placeItemsTo(list || [], colsRef, heightsRef, containerSelector);
-  if (readyRef) readyRef.value = true;
-};
-
-// 跟踪上次瀑布流项目长度，仅对新增项进行追加
-let prevMasonryLenMobile =
-  (masonryWallpapers.value && masonryWallpapers.value.length) || 0;
-// 显示全屏预览
 const gotoImg = (image: string) => {
   if (!image) {
     console.error("预览图片路径为空");
     return;
   }
-
-  // 找到当前图片在 srcList 中的索引
   const currentIndex = srcList.value.indexOf(image);
-
   if (currentIndex === -1) {
     console.error("图片未找到:", image);
     return;
   }
 
-  // 预加载下一张图片
   const nextIndex = (currentIndex + 1) % srcList.value.length;
   preloadImage(srcList.value[nextIndex]);
-  // 动态调整 srcList 的顺序
+
   srcList.value = [
     ...srcList.value.slice(currentIndex),
     ...srcList.value.slice(0, currentIndex),
   ];
 
-  // 设置当前预览的图片
   previewImage.value = image;
-  showPreview.value = true; // 显示全屏预览
+  showPreview.value = true;
 };
-// 新增：权限判断（判断是否为 admin）
+
 const isAdmin = ref(false);
-
-// 无限滚动相关变量（仅对瀑布流区域生效）
-let scrollContainer: HTMLElement | null = null;
-let scrollTimer: number | null = null;
-const loadingMore = ref(false);
-const userTriggeredScroll = ref(false);
-const prevLen = ref((props.wallpapers && props.wallpapers.length) || 0);
-// 触发加载的滚动比例（达到该比例时触发 loadMore），0.5 = 50%
-const loadTriggerRatio = 0.5;
-const handleScrollEvent = () => onScroll(true);
-
-// 绑定/解绑滚动监听的辅助函数
-const attachScroll = async () => {
-  // update admin flag
+if (typeof window !== "undefined") {
   const role = localStorage.getItem("role") || localStorage.getItem("username");
   isAdmin.value = role === "admin";
+}
 
-  // find scroll container each time to handle DOM changes
-  // 等待 DOM 更新，确保 el-scrollbar__wrap 已经渲染
-  await nextTick();
-  detachScroll();
-  scrollContainer = document.querySelector(
-    ".el-scrollbar__wrap"
-  ) as HTMLElement | null;
-  if (scrollContainer) {
-    scrollContainer.addEventListener("scroll", handleScrollEvent, {
-      passive: true,
-    });
-  } else {
-    window.addEventListener("scroll", handleScrollEvent, { passive: true });
-  }
-};
-
-const detachScroll = () => {
-  if (scrollContainer) {
-    scrollContainer.removeEventListener("scroll", handleScrollEvent);
-  }
-  window.removeEventListener("scroll", handleScrollEvent);
-  scrollContainer = null;
-};
-
-let resizeTimer: number | null = null;
-// 窗口尺寸变化处理：当列数发生变化时重建列布局
-const onResize = () => {
-  if (resizeTimer !== null) return;
-  resizeTimer = window.setTimeout(async () => {
-    resizeTimer && (clearTimeout(resizeTimer), (resizeTimer = null));
-    const newCols = getColumnCount();
-    if (newCols !== columnCount.value) {
-      // rebuild both masonry sets when column count changes
-      await rebuildColumnsFor(
-        masonryWallpapers.value || [],
-        columnsMobile,
-        columnHeightsMobile,
-        ".masonry-columns"
-      );
-    }
-  }, 200);
-};
-
-onMounted(async () => {
-  await attachScroll();
-  // 初始为 mobile 与 unknown 列构建布局
-  await rebuildColumnsFor(
-    masonryWallpapers.value || [],
-    columnsMobile,
-    columnHeightsMobile,
-    ".masonry-columns"
-  );
-  window.addEventListener("resize", onResize, { passive: true });
-});
-
-onBeforeUnmount(() => {
-  detachScroll();
-  window.removeEventListener("resize", onResize);
-});
-
-// 基于滚动容器的 scrollTop 判断是否接近底部以触发加载
-const onScroll = (isUserInitiated = false) => {
-  if (isUserInitiated) {
-    userTriggeredScroll.value = true;
-  }
-  // 节流
-  if (scrollTimer !== null) return;
-  scrollTimer = window.setTimeout(() => {
-    if (
-      !masonryWallpapers.value ||
-      masonryWallpapers.value.length === 0 ||
-      !userTriggeredScroll.value
-    ) {
-      clearTimeout(scrollTimer!);
-      scrollTimer = null;
-      return;
-    }
-
-    const sc =
-      scrollContainer ||
-      (document.scrollingElement as HTMLElement) ||
-      document.documentElement;
-    const scrollTop = sc.scrollTop;
-    const clientHeight = sc.clientHeight;
-    const scrollHeight = sc.scrollHeight;
-    const distanceToBottom = scrollHeight - (scrollTop + clientHeight);
-
-    // 计算当前滚动比例（0 - 1），当滚动位置达到或超过 loadTriggerRatio 时提前触发加载
-    const maxScrollable = Math.max(scrollHeight - clientHeight, 1);
-    const scrollRatio = scrollTop / maxScrollable;
-
-    // 触发条件：达到滚动比例阈值（例如 50%）或仍然接近底部（兼容短页）
-    if (
-      !loadingMore.value &&
-      (scrollRatio >= loadTriggerRatio || distanceToBottom <= 200)
-    ) {
-      loadingMore.value = true;
-      emit("loadMore");
-    }
-
-    clearTimeout(scrollTimer!);
-    scrollTimer = null;
-  }, 150);
-};
-
-// 父组件追加数据后重置 loadingMore 标志
-watch(
-  () => (props.wallpapers ? props.wallpapers.length : 0),
-  (len) => {
-    if (len > prevLen.value) {
-      loadingMore.value = false;
-    }
-    prevLen.value = len;
-  }
-);
-
-watch(
-  () => route.fullPath,
-  () => {
-    userTriggeredScroll.value = false;
-    loadingMore.value = false;
-  }
-);
-
-// 当瀑布流内容发生变化（例如切换类型）时，重新绑定滚动容器并重置状态
-// 监听 mobile 列表变化
-watch(masonryWallpapers, async (list) => {
-  await attachScroll();
-  const newLen = (list || []).length; 
-  const currCols = getColumnCount();
-  if (newLen < prevMasonryLenMobile || currCols !== columnCount.value) {
-    await rebuildColumnsFor(
-      list || [],
-      columnsMobile,
-      columnHeightsMobile,
-      ".masonry-columns"
-    );
-  } else if (newLen > prevMasonryLenMobile) {
-    const newItems = list.slice(prevMasonryLenMobile);
-    await placeItemsTo(
-      newItems,
-      columnsMobile,
-      columnHeightsMobile,
-      ".masonry-columns"
-    );
-  }
-  loadingMore.value = false;
-  prevMasonryLenMobile = newLen;
-});
-
-// 删除壁纸
 const deleteWallpaper = async (id: number) => {
   if (!isAdmin.value) {
     ElMessage.error("只有 admin 可以删除");
@@ -556,31 +261,6 @@ const deleteWallpaper = async (id: number) => {
     if (response.code == 200) {
       ElMessage.success("删除成功");
     }
-    const target = props.wallpapers.find((it) => it.id === id);
-    if (
-      target &&
-      (target.media_type === "computer" || target.media_type === "avatar")
-    ) {
-      emit("refresh");
-      return;
-    }
-    // 先在本地移除：从 columns 中找到对应项并删除，仅调整该列高度，避免重排所有项
-    for (let c = 0; c < columnsMobile.value.length; c++) {
-      const idx = columnsMobile.value[c].findIndex((it) => it.id === id);
-      if (idx !== -1) {
-        const h = itemHeights.value[id] || 0;
-        columnsMobile.value[c].splice(idx, 1);
-        columnHeightsMobile.value[c] = Math.max(
-          0,
-          (columnHeightsMobile.value[c] || 0) - h
-        );
-        delete itemHeights.value[id];
-        prevMasonryLenMobile = Math.max(0, prevMasonryLenMobile - 1);
-        break;
-      }
-    }
-
-    // 通知父组件从 wallpapers 数据中删除该项（父组件只需 filter 掉，不必重新请求全部）
     emit("deleted", id);
   } catch (error) {
     console.error("删除失败:", error);
@@ -588,19 +268,7 @@ const deleteWallpaper = async (id: number) => {
   }
 };
 
-// 显示弹窗
-const handleMouseEnter = (event, label) => {
-  popupContent.value = label; // 设置弹窗内容
-  popupPosition.value = { x: event.clientX, y: event.clientY }; // 设置弹窗位置
-  showPopup.value = true; // 显示弹窗
-};
-
-// 隐藏弹窗
-const handleMouseLeave = () => {
-  showPopup.value = false; // 隐藏弹窗
-};
-
-const download = (index) => {
+const download = (index: number) => {
   const url = srcList.value[index];
   if (!url) {
     console.error("图片 URL 无效:", url);
@@ -625,11 +293,10 @@ const download = (index) => {
       link.click();
       URL.revokeObjectURL(blobUrl);
       link.remove();
-      // 找到当前壁纸
+
       const wallpaper = props.wallpapers.find((item) => item.image === url);
       if (wallpaper) {
-        // 调用后端接口，更新下载次数
-        downloadWallpapers(wallpaper.id).then((res) => {
+        downloadWallpapers(wallpaper.id).then((res: any) => {
           if (res && typeof res.downloads === "number") {
             wallpaper.downloads = res.downloads;
           }
@@ -645,81 +312,15 @@ const download = (index) => {
 <style scoped lang="scss">
 .LayoutContent {
   width: 95%;
+  position: relative;
   margin-top: 15px;
   background: transparent;
   margin: 0 auto;
-  .container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-  }
-  /* 瀑布流样式 */
-  /* JS-driven masonry columns */
-  .masonry-columns {
-    display: flex;
-    margin: 1% 0px 1% 1vw;
-    width: 95%;
-    align-items: flex-start;
-  }
-
-  .masonry-column {
-    flex: 1 1 0;
-    display: flex;
-    flex-direction: column;
-    margin: 1% 0px 1% 1vw;
-  }
-
-  .masonry-item {
-    width: 100%;
-  }
-  .Content-mobile {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    display: block;
-    width: 100%;
-  }
-
-  // ::v-deep .el-scrollbar__bar,
-  // ::v-deep .el-scrollbar__thumb {
-  //   display: none !important;
-  //   opacity: 0 !important;
-  //   pointer-events: none !important;
-  // }
-
-  .Content-mobile img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 6px;
-    object-fit: cover;
-  }
-
-  /* 响应式：窄屏列数改为 1，宽屏可为 3 列 */
-  @media (min-width: 1000px) {
-    .masonry {
-      column-count: 3;
-      column-gap: 16px;
-    }
-  }
-  @media (max-width: 600px) {
-    .masonry {
-      column-count: 1;
-      column-gap: 8px;
-    }
-  }
   .ContentList {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-    }
 
     .Content-box {
       border-radius: 10px;
@@ -743,28 +344,6 @@ const download = (index) => {
         width: 100%;
       }
     }
-    .Content-box-avatar {
-      border-radius: 10px;
-      display: flex;
-      width: 20%;
-      margin: 1% 0px 1% 1vw;
-      justify-content: center;
-      align-items: center;
-      aspect-ratio: 1 / 1;
-      overflow: hidden;
-    }
-    @media (max-width: 1400px) {
-      .Content-box-avatar {
-        width: 40%;
-      }
-    }
-
-    @media (max-width: 800px) {
-      .Content-box-avatar {
-        width: 100%;
-      }
-    }
-
     .Content {
       display: flex;
       justify-content: center;
@@ -798,8 +377,8 @@ const download = (index) => {
         top: 50%;
         left: 50%;
         transform: translate(-50%, 50%);
-        background-color: rgba(255, 255, 255, 0.75);
-        color: #1a1919;
+        background-color: rgba(0, 0, 0, 0.55);
+        color: #f3f3f3;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -814,11 +393,14 @@ const download = (index) => {
 
         span {
           height: 30px;
-          border: 3px solid #ccc;
+          border: 2px solid rgba(255, 255, 255, 0.12);
           border-radius: 30px;
           font-size: 12px;
-          color: #1a1919;
-          font-weight: bold;
+          color: #f3f3f3;
+          font-weight: 600;
+          padding: 0 8px;
+          display: inline-flex;
+          align-items: center;
         }
 
         .PopupTags {
@@ -842,11 +424,6 @@ const download = (index) => {
           h3 {
             font-size: 16px;
             margin-bottom: 5px;
-          }
-
-          p {
-            font-size: 14px;
-            color: #666;
           }
         }
 
@@ -862,303 +439,21 @@ const download = (index) => {
             cursor: pointer;
             width: 70%;
             height: 50%;
-            background-color: #ece9e9;
-            color: #666;
+            background-color: rgba(0, 0, 0, 0.28);
+            color: #f3f3f3;
             border: none;
             border-radius: 25px;
-            cursor: pointer;
             font-size: 14px;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.18s ease, transform 0.12s ease;
 
             &:hover {
-              background-color: #ece9e9;
-              /* 悬浮时颜色变化 */
+              background-color: rgba(0, 0, 0, 0.56);
+              transform: translateY(-2px);
               pointer-events: auto;
-              /* 启用鼠标事件 */
             }
           }
         }
       }
-
-      /* 鼠标悬浮时显示弹窗 */
-      &:hover .Popup {
-        transform: translate(-50%, -50%);
-        /* 放大弹窗 */
-        opacity: 1;
-        /* 显示弹窗 */
-      }
-    }
-
-    .Content-mobile {
-      position: relative;
-      height: 100%;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-      /* 图片悬浮效果 */
-      &:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 10px;
-      }
-
-      /* 弹窗 */
-      .Popup {
-        width: 80%;
-        /* 弹窗宽度为图片的 70% */
-        height: 80%;
-        /* 弹窗高度为图片的 70% */
-        position: absolute;
-        top: 50%;
-        /* 定位到图片中心 */
-        left: 50%;
-        /* 定位到图片中心 */
-        transform: translate(-50%, 50%);
-        /* 确保中心点对齐 */
-        background-color: rgba(255, 255, 255, 0.75);
-        color: #1a1919;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 14px;
-        // pointer-events: none; /* 防止鼠标与弹窗交互 */
-        z-index: 10;
-        white-space: nowrap;
-        opacity: 0;
-        /* 初始透明度为 0 */
-        transition: transform 0.3s ease, opacity 0.3s ease;
-
-        /* 添加动画效果 */
-        /* 鼠标悬浮时启用鼠标事件 */
-
-        span {
-          height: 30px;
-          border: 3px solid #ccc;
-          border-radius: 30px;
-          font-size: 12px;
-          color: #1a1919;
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
-          font-weight: bold;
-          /* 标签加粗 */
-          margin-right: 5px;
-          /* 标签之间的间距 */
-        }
-
-        .PopupTags {
-          width: 100%;
-          max-height: 100%;
-          margin-bottom: 5px;
-          overflow: hidden;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .PopupContent {
-          display: flex;
-          justify-content: space-around;
-          width: 70%;
-          height: 20%;
-          align-items: center;
-
-          h3 {
-            font-size: 16px;
-            margin-bottom: 5px;
-            /* 标题和描述之间的间距 */
-          }
-
-          p {
-            font-size: 14px;
-            color: #666;
-          }
-        }
-
-        .PopupSuccess {
-          width: 70%;
-          height: 30%;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-
-          /* 按钮和描述之间的间距 */
-          button {
-            cursor: pointer;
-            width: 70%;
-            height: 30%;
-            background-color: #ece9e9;
-            color: #666;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-
-            &:hover {
-              background-color: #ece9e9;
-              /* 悬浮时颜色变化 */
-              pointer-events: auto;
-              /* 启用鼠标事件 */
-            }
-          }
-        }
-      }
-
-      /* 鼠标悬浮时显示弹窗 */
-      &:hover .Popup {
-        transform: translate(-50%, -50%);
-        /* 放大弹窗 */
-        opacity: 1;
-        /* 显示弹窗 */
-      }
-    }
-
-    .Content-avatar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      width: 70%;
-      height: 70%;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-      /* 图片悬浮效果 */
-      &:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 10px;
-      }
-
-      /* 弹窗 */
-      .Popup {
-        width: 80%;
-        /* 弹窗宽度为图片的 70% */
-        height: 80%;
-        /* 弹窗高度为图片的 70% */
-        position: absolute;
-        top: 50%;
-        /* 定位到图片中心 */
-        left: 50%;
-        /* 定位到图片中心 */
-        transform: translate(-50%, 50%);
-        /* 确保中心点对齐 */
-        background-color: rgba(255, 255, 255, 0.75);
-        color: #1a1919;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 14px;
-        // pointer-events: none; /* 防止鼠标与弹窗交互 */
-        z-index: 10;
-        white-space: nowrap;
-        opacity: 0;
-        /* 初始透明度为 0 */
-        transition: transform 0.3s ease, opacity 0.3s ease;
-
-        /* 添加动画效果 */
-        /* 鼠标悬浮时启用鼠标事件 */
-
-        span {
-          height: 30px;
-          border: 3px solid #ccc;
-          border-radius: 30px;
-          font-size: 12px;
-          color: #1a1919;
-          margin-bottom: 5px;
-          /* 标签和标题之间的间距 */
-          font-weight: bold;
-          /* 标签加粗 */
-          margin-right: 5px;
-          /* 标签之间的间距 */
-        }
-
-        .PopupTags {
-          width: 100%;
-          max-height: 100%;
-          margin-bottom: 5px;
-          overflow: hidden;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .PopupContent {
-          display: flex;
-          justify-content: space-around;
-          width: 70%;
-          height: 20%;
-          align-items: center;
-
-          h3 {
-            font-size: 16px;
-            margin-bottom: 5px;
-            /* 标题和描述之间的间距 */
-          }
-
-          p {
-            font-size: 14px;
-            color: #666;
-          }
-        }
-
-        .PopupSuccess {
-          width: 70%;
-          height: 50%;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-
-          /* 按钮和描述之间的间距 */
-          button {
-            cursor: pointer;
-            width: 70%;
-            height: 50%;
-            background-color: #ece9e9;
-            color: #666;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-
-            &:hover {
-              background-color: #ece9e9;
-              /* 悬浮时颜色变化 */
-              pointer-events: auto;
-              /* 启用鼠标事件 */
-            }
-          }
-        }
-      }
-
       /* 鼠标悬浮时显示弹窗 */
       &:hover .Popup {
         transform: translate(-50%, -50%);
@@ -1181,86 +476,59 @@ const download = (index) => {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+  }
+}
+/* 图片加载特效：初始显示渐变占位并带轻微模糊/缩放，加载完成平滑过渡到清晰 */
+img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+  /* 更短的过渡与更自然的缓动 */
+  transition: filter 420ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 300ms ease;
 
-    .Previewimg {
-      max-width: 90%;
-      max-height: 90%;
-      object-fit: contain;
-      border-radius: 10px;
-    }
+  /* 初始占位：模糊 + 缩放 + 流光背景，提升加载感 */
+  filter: blur(10px) saturate(0.95);
+  transform: scale(1.04);
+  opacity: 0.98;
+  background-size: 200% 100%;
+  animation: placeholderShimmer 1.6s linear infinite;
+}
 
-    .image-close {
-      width: 40px;
-      height: 40px;
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      color: #fff;
-      font-size: 24px;
-      font-weight: bold;
-      background-color: transparent;
-      border: none;
-      cursor: pointer;
-      z-index: 1001;
+/* 图片加载完成：清晰、复位缩放并关闭占位动画 */
+img.is-loaded {
+  filter: none;
+  transform: scale(1);
+  opacity: 1;
+  background: transparent;
+  animation: none;
+}
 
-      &:hover {
-        background-color: #f0f0f0;
-        /* 悬浮时颜色变化 */
-        pointer-events: auto;
-        /* 启用鼠标事件 */
-      }
+/* 旋转动画保留用于蒙版 spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-      &:active {
-        background-color: #d0d0d0;
-        pointer-events: auto;
-      }
-    }
+/* 占位流光动画 */
+@keyframes placeholderShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
 
-    .image-bar {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: rgba(255, 255, 255, 0.8);
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      z-index: 1001;
-
-      .image-bar__btns {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-
-        &:hover {
-          background-color: #f0f0f0;
-          /* 悬浮时颜色变化 */
-          pointer-events: auto;
-          /* 启用鼠标事件 */
-        }
-      }
-
-      .el-button {
-        background-color: #fff;
-        color: #000;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-
-        &:hover {
-          background-color: #f0f0f0;
-          /* 悬浮时颜色变化 */
-          pointer-events: auto;
-          /* 启用鼠标事件 */
-        }
-      }
-    }
+/* 无动画偏好时禁用动画（无障碍友好） */
+@media (prefers-reduced-motion: reduce) {
+  img,
+  .spinner {
+    transition: none !important;
+    animation: none !important;
   }
 }
 </style>

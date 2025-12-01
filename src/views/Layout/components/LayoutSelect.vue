@@ -3,7 +3,6 @@
     <div class="container">
       <div class="ColumnSelectTitle">
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">分类</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedCategory"
@@ -21,7 +20,6 @@
           </el-select>
         </div>
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">壁纸类型</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedType"
@@ -38,7 +36,6 @@
           </el-select>
         </div>
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">搜索</h2> -->
           <el-autocomplete
             v-model="selectedTags"
             placeholder="输入名称"
@@ -50,7 +47,6 @@
           />
         </div>
         <div class="SelectContent">
-          <!-- <h2 style="width: 100px">分辨率</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedResolution"
