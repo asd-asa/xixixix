@@ -37,6 +37,9 @@
                       <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
                         删除
                       </button>
+                      <button @click="download(item.id)">
+                        下载
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -89,6 +92,9 @@
         </div>
       </div>
   </div>
+  <div class="imghuiqu">
+    <img class="is-loaded" src="../../../assets/static/火箭.png" alt="回到顶部" @click="scrollToTop">
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -112,6 +118,7 @@ import {
 } from "vue";
 import { useRoute } from "vue-router";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
+
 
 const emit = defineEmits<{
   (e: "refresh"): void;
@@ -618,44 +625,70 @@ const handleMouseLeave = () => {
   showPopup.value = false; // 隐藏弹窗
 };
 
-const download = (index) => {
-  const url = srcList.value[index];
-  if (!url) {
-    console.error("图片 URL 无效:", url);
-    return;
+// 回到顶部
+const scrollToTop = () => {
+  const sc =
+    scrollContainer ||
+    (document.scrollingElement as HTMLElement | null) ||
+    document.documentElement ||
+    window;
+  const scrollFn = (sc as any)?.scrollTo;
+  if (typeof scrollFn === "function") {
+    scrollFn.call(sc, { top: 0, behavior: "smooth" });
   }
-  const suffix = url.slice(url.lastIndexOf("."));
+};
+
+
+const download = (value: number) => {
+  let url = "";
+  let wallpaper: any = null;
+
+  // 先尝试按 id 查找（模板传入的是 item.id）
+  wallpaper = (props.wallpapers as any).find((item: any) => item.id === value);
+  if (wallpaper) {
+    if (!wallpaper.image) {
+      console.error('wallpaper 缺少 `image` 字段，无法下载:', wallpaper);
+      return;
+    }
+    url = wallpaper.image;
+  } else {
+    // 若未找到 id，按 srcList 索引处理（预览工具栏会传入 activeIndex）
+    url = srcList.value[value];
+    if (!url) {
+      console.error('图片 URL 无效:', url);
+      return;
+    }
+    wallpaper = (props.wallpapers as any).find((item: any) => item.image === url);
+  }
+
+  const suffix = url.slice(url.lastIndexOf('.'));
   const filename = Date.now() + suffix;
 
   fetch(url)
     .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP 错误: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
       return response.blob();
     })
     .then((blob) => {
       const blobUrl = URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
       URL.revokeObjectURL(blobUrl);
       link.remove();
-      // 找到当前壁纸
-      const wallpaper = props.wallpapers.find((item) => item.image === url);
+
       if (wallpaper) {
-        // 调用后端接口，更新下载次数
-        downloadWallpapers(wallpaper.id).then((res) => {
-          if (res && typeof res.downloads === "number") {
+        downloadWallpapers(wallpaper.id).then((res: any) => {
+          if (res && typeof res.downloads === 'number') {
             wallpaper.downloads = res.downloads;
           }
         });
       }
     })
     .catch((error) => {
-      console.error("下载失败:", error);
+      console.error('下载失败:', error);
     });
 };
 </script>
@@ -1007,5 +1040,35 @@ img.is-loaded {
     animation: none !important;
   }
 }
+.imghuiqu {
+  position: fixed;
+  right: 8px;
+  bottom: 80px;     
+  width: 60px;
+  height: 60px;
+  z-index: 1000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 50%;
+  background: rgb(190 246 201 / 24%);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(83, 180, 241, 0.78);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 
+  &:hover {
+    transform: translateY(-4px);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+  }
+}
 </style>

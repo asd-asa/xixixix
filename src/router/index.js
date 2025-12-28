@@ -6,7 +6,7 @@ import Layout from '@/views/Layout/index.vue'
 import Login from '@/views/login.vue'
 import Like from '@/views/like/index.vue'
 import Phone from '@/views/phone/index.vue'
-import Setting from '@/views/setting/index.vue'
+import Avatar from '@/views/avatar/index.vue'
 import About from '@/views/about/index.vue'
 import My from '@/views/my/index.vue'
 import Register from '@/views/Register/index.vue'
@@ -34,8 +34,8 @@ const router = createRouter({
       component: About,
     },
     {
-      path: '/setting',
-      component: Setting,
+      path: '/avatar',
+      component: Avatar,
     },
     {
       path: '/my',

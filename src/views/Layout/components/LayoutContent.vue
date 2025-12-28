@@ -28,14 +28,17 @@
               <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
                 删除
               </button>
+              <button @click="download(item.id)">
+                下载
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div v-if="showPreview" class="PreviewOverlay">
+    <div v-show="showPreview" class="PreviewOverlay">
       <el-image-viewer
-        v-if="showPreview"
+        v-show="showPreview"
         :url-list="srcList"
         @close="showPreview = false"
         show-progress
@@ -163,7 +166,7 @@ watch(
       overlayHidden.value = false;
     }
 
-    // 开始 JS 预加载（独立于模板上的 img load）
+    // 开始 JS 预加载（独立于模板上的 img load），优先使用 `image` 字段
     list.forEach((item: any) => {
       const img = new Image();
       preloaderImgs.value.push(img);
@@ -182,8 +185,8 @@ watch(
         }
         if (loadedImages.value >= totalImages.value) allLoadedDone();
       };
-            // 优先用 image_url；若无则用 image 字段
-      img.src = item.image_url || item.image || "";
+            // 必须使用 image 字段（下载逻辑依赖 image）
+            img.src = item.image || "";
     });
   },
   { immediate: true }
@@ -268,25 +271,40 @@ const deleteWallpaper = async (id: number) => {
   }
 };
 
-const download = (index: number) => {
-  const url = srcList.value[index];
-  if (!url) {
-    console.error("图片 URL 无效:", url);
-    return;
+// 支持两种调用：传入 wallpaper id（来自模板）或传入 srcList 的索引（来自预览工具栏）
+const download = (value: number) => {
+  let url = "";
+  let wallpaper: any = null;
+
+  // 先尝试按 id 查找（模板传入的是 item.id）
+  wallpaper = (props.wallpapers as any).find((item: any) => item.id === value);
+  if (wallpaper) {
+    if (!wallpaper.image) {
+      console.error('wallpaper 缺少 `image` 字段，无法下载:', wallpaper);
+      return;
+    }
+    url = wallpaper.image;
+  } else {
+    // 若未找到 id，按 srcList 索引处理（预览工具栏会传入 activeIndex）
+    url = srcList.value[value];
+    if (!url) {
+      console.error('图片 URL 无效:', url);
+      return;
+    }
+    wallpaper = (props.wallpapers as any).find((item: any) => item.image === url);
   }
-  const suffix = url.slice(url.lastIndexOf("."));
+
+  const suffix = url.slice(url.lastIndexOf('.'));
   const filename = Date.now() + suffix;
 
   fetch(url)
     .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP 错误: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
       return response.blob();
     })
     .then((blob) => {
       const blobUrl = URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
       document.body.appendChild(link);
@@ -294,17 +312,16 @@ const download = (index: number) => {
       URL.revokeObjectURL(blobUrl);
       link.remove();
 
-      const wallpaper = props.wallpapers.find((item) => item.image === url);
       if (wallpaper) {
         downloadWallpapers(wallpaper.id).then((res: any) => {
-          if (res && typeof res.downloads === "number") {
+          if (res && typeof res.downloads === 'number') {
             wallpaper.downloads = res.downloads;
           }
         });
       }
     })
     .catch((error) => {
-      console.error("下载失败:", error);
+      console.error('下载失败:', error);
     });
 };
 </script>

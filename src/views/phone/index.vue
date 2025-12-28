@@ -40,7 +40,7 @@ const selectedResolution = ref(""); // 当前选择的分辨率
 const selectedTags = ref(""); // 搜索框的值
 const selectedType = ref(""); // 当前选择的类型
 const currentPage = ref(1); // 当前页码
-const pageSize = ref(9); // 每页大小
+const pageSize = ref(12); // 每页大小
 
 // 计算总页数和是否还有更多
 const totalPages = computed(() => {
@@ -55,11 +55,6 @@ const hasMore = computed(() => {
 
 const fetchWallpapers = async (append = false) => {
   try {
-     if (selectedType.value === "mobile") {
-      pageSize.value = 12;
-    } else {
-      pageSize.value = 9;
-    }
     const response = await getWallpapersPage(
       selectedCategory.value,
       currentPage.value,
@@ -118,6 +113,7 @@ const handleResolutionChange = (resolution) => {
 const handleSearchChange = (tags) => {
   selectedTags.value = tags;
   currentPage.value = 1; // 重置页码
+  wallpapers.value =[]
   fetchWallpapers(false);
 };
 // 监听类型变化

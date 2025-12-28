@@ -38,10 +38,11 @@
         <div class="SelectContent">
           <el-autocomplete
             v-model="selectedTags"
-            placeholder="输入名称"
+            placeholder="输入标签"
             style="width: 170px"
             clearable
             :fetch-suggestions="querySearchAsync"
+            @input="handleSearchInput"
             @select="handleSearchSelect"
             @clear="handleClear"
           />
@@ -111,42 +112,45 @@ const fetchClassifyDetail = async () => {
 // 异步搜索方法
 const querySearchAsync = async (queryString, callback) => {
   if (!queryString) {
-    callback([]); // 如果输入为空，返回空数组
+    callback([]);
     return;
   }
-
   try {
     const response = await searchWallpapers(queryString);
-    // 检查 response 是否包含 results，并过滤包含标签的壁纸
+
+    // 用接口返回的 title 为建议项；也可追加包含输入的 tags
     const suggestions = Array.isArray(response)
       ? response
           .flatMap((item) => {
+            const list = [];
+            if (item?.title) list.push(item.title);
             try {
-              const parsedTags = JSON.parse(item.tags); // 解析 tags 字段
-              // 筛选包含输入字符串的标签
-              const filteredTags = parsedTags.filter((tag) =>
-                tag.includes(queryString)
+              const tags = JSON.parse(item?.tags || "[]");
+              list.push(
+                ...tags.filter((tag) => tag && tag.includes(queryString))
               );
-              return filteredTags;
-            } catch (error) {
-              console.error("解析 tags 失败:", error);
-              return [];
+            } catch (err) {
+              console.error("解析 tags 失败:", err);
             }
+            return list;
           })
-          .map((tag) => ({
-            value: tag, // 标签本身作为下拉框的值
-          }))
+          .filter(Boolean)
+          .map((value) => ({ value }))
       : [];
 
     const uniqueSuggestions = Array.from(
       new Set(suggestions.map((tag) => tag.value))
     ).map((value) => suggestions.find((tag) => tag.value === value));
-    // 返回建议列表
-    callback(uniqueSuggestions); // 返回建议列表
+
+    callback(uniqueSuggestions);
   } catch (error) {
     console.error("Error fetching suggestions:", error);
-    callback([]); // 如果出错，返回空数组
+    callback([]);
   }
+};
+
+const handleSearchInput = (value) => {
+  emit("searchChange", value);
 };
 const handleSearchSelect = (item) => {
   selectedTags.value = item.value; // 更新搜索框的值
@@ -179,7 +183,7 @@ const handleimgCategoryChange = () => {
     router.push("/phone");
     return
   }else if (selectedType.value === "avatar") {
-    router.push("/setting");
+    router.push("/avatar");
     return
   }
   emit("imgCategoryChange", selectedType.value); // 触发事件，将类型数据传递给父组件
@@ -201,7 +205,7 @@ onMounted(() => {
   margin-top: 10px;
   height: 50%;
   background: transparent;
-  background-color: rgba(44, 100, 146, 0.5);
+  background-color: #2c649280;
   border-radius: 50px;
   z-index: 2;
   ::v-deep .el-autocomplete .el-input__inner::placeholder {

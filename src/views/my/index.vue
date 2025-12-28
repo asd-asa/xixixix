@@ -2,7 +2,6 @@
   <div class="upload-wallpapers">
     <div class="upload-wallpapers__title">图片上传</div>
     <el-form
-      style="min-width: 400px"
       status-icon
       label-width="auto"
       class="demo-ruleForm"
@@ -269,7 +268,7 @@ onMounted(() => {
   border-radius: 17px;
   background: rgba(44, 100, 146, 0.5);
   margin-top: 20px;
-  height: 70%;
+  height: 80%;
   width: 50%;
   margin: 30px auto 0;
   padding: 0 20px;

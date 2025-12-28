@@ -31,7 +31,10 @@
             </div>
             <div class="PopupSuccess">
               <button @click="gotoImg(item.image)">预览</button>
-              <button @click="deleteWallpaper(item.id)">删除</button>
+              <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
+              <button @click="download(item.id)">
+                下载
+              </button>
             </div>
           </div>
         </div>
@@ -288,25 +291,39 @@ const handleMouseLeave = () => {
   showPopup.value = false;
 };
 
-const download = (index: number) => {
-  const url = srcList.value[index];
-  if (!url) {
-    console.error("图片 URL 无效:", url);
-    return;
+const download = (value: number) => {
+  let url = "";
+  let wallpaper: any = null;
+
+  // 先尝试按 id 查找（模板传入的是 item.id）
+  wallpaper = (props.wallpapers as any).find((item: any) => item.id === value);
+  if (wallpaper) {
+    if (!wallpaper.image) {
+      console.error('wallpaper 缺少 `image` 字段，无法下载:', wallpaper);
+      return;
+    }
+    url = wallpaper.image;
+  } else {
+    // 若未找到 id，按 srcList 索引处理（预览工具栏会传入 activeIndex）
+    url = srcList.value[value];
+    if (!url) {
+      console.error('图片 URL 无效:', url);
+      return;
+    }
+    wallpaper = (props.wallpapers as any).find((item: any) => item.image === url);
   }
-  const suffix = url.slice(url.lastIndexOf("."));
+
+  const suffix = url.slice(url.lastIndexOf('.'));
   const filename = Date.now() + suffix;
 
   fetch(url)
     .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP 错误: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
       return response.blob();
     })
     .then((blob) => {
       const blobUrl = URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
       document.body.appendChild(link);
@@ -314,17 +331,16 @@ const download = (index: number) => {
       URL.revokeObjectURL(blobUrl);
       link.remove();
 
-      const wallpaper = props.wallpapers.find((item) => item.image === url);
       if (wallpaper) {
         downloadWallpapers(wallpaper.id).then((res: any) => {
-          if (res && typeof res.downloads === "number") {
+          if (res && typeof res.downloads === 'number') {
             wallpaper.downloads = res.downloads;
           }
         });
       }
     })
     .catch((error) => {
-      console.error("下载失败:", error);
+      console.error('下载失败:', error);
     });
 };
 </script>

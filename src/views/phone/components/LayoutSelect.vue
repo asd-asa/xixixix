@@ -44,6 +44,7 @@
             :fetch-suggestions="querySearchAsync"
             @select="handleSearchSelect"
             @clear="handleClear"
+            @input="handleSearchInput"
           />
         </div>
         <div class="SelectContent">
@@ -111,51 +112,54 @@ const fetchClassifyDetail = async () => {
 // 异步搜索方法
 const querySearchAsync = async (queryString, callback) => {
   if (!queryString) {
-    callback([]); // 如果输入为空，返回空数组
+    callback([]);
     return;
   }
-
   try {
     const response = await searchWallpapers(queryString);
-    // 检查 response 是否包含 results，并过滤包含标签的壁纸
+
+    // 用接口返回的 title 为建议项；也可追加包含输入的 tags
     const suggestions = Array.isArray(response)
       ? response
           .flatMap((item) => {
+            const list = [];
+            if (item?.title) list.push(item.title);
             try {
-              const parsedTags = JSON.parse(item.tags); // 解析 tags 字段
-              // 筛选包含输入字符串的标签
-              const filteredTags = parsedTags.filter((tag) =>
-                tag.includes(queryString)
+              const tags = JSON.parse(item?.tags || "[]");
+              list.push(
+                ...tags.filter((tag) => tag && tag.includes(queryString))
               );
-              return filteredTags;
-            } catch (error) {
-              console.error("解析 tags 失败:", error);
-              return [];
+            } catch (err) {
+              console.error("解析 tags 失败:", err);
             }
+            return list;
           })
-          .map((tag) => ({
-            value: tag, // 标签本身作为下拉框的值
-          }))
+          .filter(Boolean)
+          .map((value) => ({ value }))
       : [];
 
     const uniqueSuggestions = Array.from(
       new Set(suggestions.map((tag) => tag.value))
     ).map((value) => suggestions.find((tag) => tag.value === value));
-    // 返回建议列表
-    callback(uniqueSuggestions); // 返回建议列表
+
+    callback(uniqueSuggestions);
   } catch (error) {
     console.error("Error fetching suggestions:", error);
-    callback([]); // 如果出错，返回空数组
+    callback([]);
   }
 };
-const handleSearchSelect = (item) => {
-  selectedTags.value = item.value; // 更新搜索框的值
-  emit("searchChange", item.value); // 将选中的值传递给父组件
+
+const handleSearchInput = (value) => {
+  emit("searchChange", value);
 };
-const handleClear = () => {
-  selectedTags.value = ""; // 清空搜索框的值
-  emit("searchChange", ""); // 将清空的值传递给父组件
-};
+// const handleSearchSelect = (item) => {
+//   selectedTags.value = item.value; // 更新搜索框的值
+//   emit("searchChange", item.value); // 将选中的值传递给父组件
+// };
+// const handleClear = () => {
+//   selectedTags.value = ""; // 清空搜索框的值
+//   emit("searchChange", ""); // 将清空的值传递给父组件
+// };
 // 选中的分辨率
 const selectedResolution = ref("");
 // 当前选择的分类
@@ -179,7 +183,7 @@ if (selectedType.value === "computer") {
     router.push("/");
     return
   }else if (selectedType.value === "avatar") {
-    router.push("/setting");
+    router.push("/avatar");
     return
   }
   emit("imgCategoryChange", selectedType.value); // 触发事件，将类型数据传递给父组件
