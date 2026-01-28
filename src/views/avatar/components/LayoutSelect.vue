@@ -41,7 +41,7 @@
           <!-- <h2 style="width: 100px">搜索</h2> -->
           <el-autocomplete
             v-model="selectedTags"
-            placeholder="输入名称"
+            placeholder="输入标签"
             style="width: 170px"
             clearable
             :fetch-suggestions="querySearchAsync"

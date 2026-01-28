@@ -38,7 +38,7 @@
         <div class="SelectContent">
           <el-autocomplete
             v-model="selectedTags"
-            placeholder="输入名称"
+            placeholder="输入标签"
             style="width: 170px"
             clearable
             :fetch-suggestions="querySearchAsync"

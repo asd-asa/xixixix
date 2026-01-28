@@ -40,7 +40,7 @@ const currentPage = ref(1); // 当前页码
 const pageSize = ref(9); // 每页大小
 
 const isLoading = ref(false);
-
+// 获取壁纸数据
 const fetchWallpapers = async () => {
   isLoading.value = true;
   try {
@@ -62,11 +62,11 @@ const fetchWallpapers = async () => {
     isLoading.value = false;
   }
 };
-
+// 图片加载完成回调
 const onImagesLoaded = () => {
   isLoading.value = false;
 };
-
+// 删除图片后的处理
 const deleted = async () => {
   // 保持当前页；若删除后当前页没有数据且不是第一页，则回退一页并再次请求
   const results = await fetchWallpapers();

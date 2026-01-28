@@ -79,14 +79,13 @@
         <el-button type="primary" @click="debouncedHandleFileUpload"
           >上传图片</el-button
         >
-        <el-button type="danger" @click="resetUpload" style="margin-left: 60px"
+        <el-button type="danger" @click="resetUpload" 
           >重置</el-button
         >
         <!-- 退出登录 -->
         <el-button
           type="warning"
           @click="logout"
-          style="margin-left: 60px"
           v-if="hasToken"
           >退出登录</el-button
         >
@@ -189,6 +188,7 @@ const handleFileUpload = async () => {
   formData.append("title", title.value || "未命名"); // 图片标题字段
   formData.append("description", description.value || ""); // 图片描述字段
   formData.append("tags", JSON.stringify(tags.value)); // 将标签数组转换为 JSON 字符串
+  formData.append("userrole", localStorage.getItem("username") || ""); // 用户名称
   try {
     const response = await uploadWallpapers(formData).then((res) => {
       loading.close();
@@ -268,27 +268,35 @@ onMounted(() => {
   border-radius: 17px;
   background: rgba(44, 100, 146, 0.5);
   margin-top: 20px;
-  height: 80%;
-  width: 50%;
+  /* 移动端优先：默认较窄的容器 */
+  width: 90%;
+  max-width: 1100px;
+  min-height: 60vh;
   margin: 30px auto 0;
-  padding: 0 20px;
+  padding: 16px;
+  box-sizing: border-box;
+  transition: width 240ms ease, padding 200ms ease;
   :deep() {
     .el-form-item__label {
       color: #fff;
     }
   }
+
   .upload-wallpapers__btns {
     background: transparent;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 40px;
+    margin-top: 24px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 }
 
 /* 上传预览区域限制高度并启用内部滚动，防止上传列表过长把底部按钮挤出视口 */
 .upload-preview {
-  max-height: 360px; /* 可根据需要调整 */
+  /* 使用视口单位保证在不同设备/方向下合理显示 */
+  max-height: min(50vh, 360px);
   overflow-y: auto;
   padding: 8px;
   border: 1px solid rgba(0, 0, 0, 0.04);
@@ -309,9 +317,60 @@ onMounted(() => {
 }
 
 .upload-wallpapers__title {
-  font-size: 24px;
+  font-size: 20px; /* 移动端默认字号 */
   color: #fff;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
+
+/* 平板及以上 */
+@media (min-width: 768px) {
+  .upload-wallpapers {
+    width: 70%;
+    padding: 20px;
+    min-height: 65vh;
+  }
+  .upload-preview {
+    max-height: min(60vh, 520px);
+  }
+  .upload-wallpapers__title {
+    font-size: 22px;
+  }
+}
+
+/* 桌面大屏 */
+@media (min-width: 1200px) {
+  .upload-wallpapers {
+    width: 50%;
+    padding: 24px;
+    min-height: 68vh;
+  }
+  .upload-preview {
+    max-height: min(70vh, 720px);
+  }
+  .upload-wallpapers__title {
+    font-size: 24px;
+  }
+}
+
+/* 横屏小屏（手机横屏或小平板横屏）调整：提高容器宽度，避免元素拥挤 */
+@media (max-width: 767px) and (orientation: landscape) {
+  .upload-wallpapers {
+    width: 80%;
+    padding: 12px;
+  }
+  .upload-preview {
+    max-height: 60vh;
+  }
+}
+
+/* 竖屏时确保按钮排列良好 */
+@media (max-width: 767px) and (orientation: portrait) {
+  .upload-wallpapers__btns {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 </style>
+
