@@ -7,3 +7,22 @@ export function getRegisterApi(data) {
     },
   });
 }
+
+// 列出所有用户
+export function listUsers(params = {}) {
+  return get('user/users/', params);
+}
+
+// 拉黑或恢复用户（
+export function banUser(id, ban = true, uploader = null) {
+  // 如果未传入 uploader，则尝试从 localStorage 获取当前用户名（浏览器环境）
+  let u = uploader;
+  try {
+    if (!u && typeof window !== 'undefined') {
+      u = localStorage.getItem('username') || '';
+    }
+  } catch (e) {
+    u = u || '';
+  }
+  return post(`user/users/${id}/ban/`, { ban, uploader: u });
+}

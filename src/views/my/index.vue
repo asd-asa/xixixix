@@ -249,6 +249,15 @@ const logout = () => {
   // 清除 token 和其他用户信息
   localStorage.removeItem("token");
   localStorage.removeItem("refresh_token");
+  // 同时清除登录相关的本地信息（username/role/user/isAdmin）
+  try {
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    localStorage.removeItem("user");
+    // 如果你还有其它与登录相关的 key，也可以在这里一并清除
+  } catch (e) {
+    console.warn('logout: unable to clear some localStorage keys', e);
+  }
   // 跳转到登录页面
   window.location.href = "/login"; // 替换为你的登录页面路径
 };
