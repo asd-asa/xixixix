@@ -22,9 +22,12 @@
                 </el-input>
             </el-form-item>
             <el-checkbox v-model="loginForm.remeberMe"  label="记住密码" size="large" />
+            <div class="login-links">
+                <el-link type="primary" @click="goToForgotPassword">找回密码</el-link>
+            </div>
             <div class="login-btn">
-                <el-button type="primary" @click.prevent="login">登录</el-button>
                 <el-button type="success" @click="goToRegister">注册</el-button>
+                <el-button type="primary" @click.prevent="login">登录</el-button>
             </div>
 
         </el-form>
@@ -86,6 +89,10 @@ const goToRegister = () => {
     router.push('/register');
 };
 
+const goToForgotPassword = () => {
+    router.push('/forgot-password');
+};
+
 </script>
 
 <style scoped lang="scss">
@@ -111,11 +118,29 @@ const goToRegister = () => {
         border-radius: 5px;
 
         // margin:auto;
+        .login-links {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+
         .login-btn {
             display: flex;
             justify-content: center;
             margin-top: 20px;
         }
+    }
+}
+
+@media (max-width: 480px) {
+    .login {
+        padding: 20px 0;
+    }
+    .login .login-form {
+        transform: scale(0.9);
+        transform-origin: top center;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0 !important;
     }
 }
 </style>

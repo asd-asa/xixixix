@@ -15,7 +15,7 @@ const http = axios.create({
 
 //请求白名单
 const whiteList = ['user/login/','user/register/','wallpapers/wallpapers/page/','title/category-list/'
-    ,'title/category-item/','title/navigation-bar/',"wallpapers/wallpapers/"
+    ,'title/category-item/','title/navigation-bar/',"wallpapers/wallpapers/","user/send-code/","user/password-reset/"
 ]
 // 添加请求拦截器
 http.interceptors.request.use(

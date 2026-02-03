@@ -10,6 +10,7 @@ import Avatar from '@/views/avatar/index.vue'
 import About from '@/views/about/index.vue'
 import My from '@/views/my/index.vue'
 import Register from '@/views/Register/index.vue'
+import ForgotPassword from '@/views/ForgotPassword/index.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -44,6 +45,10 @@ const router = createRouter({
     {
       path: '/register',
       component: Register,
+    },
+    {
+      path: '/forgot-password',
+      component: ForgotPassword,
     },
 
   ]

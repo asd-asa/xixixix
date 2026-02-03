@@ -8,6 +8,33 @@ export function getRegisterApi(data) {
   });
 }
 
+// 发送验证码（邮箱）
+export function sendSmsCode(email) {
+  return post(
+    "user/send-code/",
+    { email },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
+
+// 重置密码（邮箱）
+export function resetPassword(email, code, newPassword) {
+  return post(
+    "user/password-reset/",
+    { email, code, new_password: newPassword },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
 // 列出所有用户
 export function listUsers(params = {}) {
   return get('user/users/', params);

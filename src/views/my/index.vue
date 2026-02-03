@@ -205,8 +205,6 @@ const handleFileUpload = async () => {
     // 处理上传成功后的逻辑，比如清空文件选择框、显示提示等
     resetForm(); // 调用清空表单和状态的函数
   } catch (error) {
-    console.error("上传失败:", error);
-
     // 检查是否存在 token
     const token = localStorage.getItem("token");
     if (
@@ -222,8 +220,12 @@ const handleFileUpload = async () => {
     }
 
     // 处理其他上传失败的逻辑，比如显示错误提示等
-    console.error("上传失败的详细信息:", error.message || error);
-    ElMessage.error("上传失败，请稍后重试。"); // 显示错误提示
+    const detail =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      error?.message ||
+      "上传失败";
+    ElMessage.error(detail); // 显示错误提示
   }
 };
 function debounce(fn, wait = 800, immediate = true) {

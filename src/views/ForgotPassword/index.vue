@@ -9,16 +9,13 @@
       label-width="auto"
       class="login-form"
     >
-      <h1>用户注册</h1>
-      <el-form-item label="账号" prop="username">
-        <el-input v-model="ruleForm.username" placeholder="请输入账号"  autocomplete="请输入账号" clearable />
-      </el-form-item>
+      <h1>找回密码</h1>
       <el-form-item label="邮箱" prop="email">
-        <el-input v-model="ruleForm.email" placeholder="请输入邮箱" autocomplete="请输入邮箱" clearable />
+        <el-input v-model="ruleForm.email" autocomplete="off" clearable />
       </el-form-item>
       <el-form-item label="验证码" prop="code">
         <div class="sms-code-group">
-          <el-input v-model="ruleForm.code" placeholder="请输入验证码" autocomplete="请输入验证码" clearable />
+          <el-input v-model="ruleForm.code" autocomplete="off" clearable />
           <el-button
             :disabled="isCounting"
             @click="handleSendCode"
@@ -29,12 +26,11 @@
           </el-button>
         </div>
       </el-form-item>
-      <el-form-item label="密码" prop="password">
+      <el-form-item label="新密码" prop="password">
         <el-input
           v-model="ruleForm.password"
           type="password"
-          placeholder="请输入密码"
-          autocomplete="请输入密码"
+          autocomplete="off"
           clearable
         />
       </el-form-item>
@@ -42,8 +38,7 @@
         <el-input
           v-model="ruleForm.confirmPassword"
           type="password"
-          placeholder="请输入确认密码"
-          autocomplete="请输入确认密码"
+          autocomplete="off"
           clearable
         />
       </el-form-item>
@@ -61,7 +56,7 @@
 import { reactive, ref } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import { ElMessage } from "element-plus";
-import { getRegisterApi, sendSmsCode } from "@/api/user";
+import { sendSmsCode, resetPassword } from "@/api/user";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -98,7 +93,7 @@ const stopCountdown = () => {
 const validateEmail = (rule: any, value: any, callback: any) => {
   if (value === "") {
     callback(new Error("请输入邮箱"));
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+  } else if (!/^\S+@\S+\.\S+$/.test(value)) {
     callback(new Error("请输入有效的邮箱"));
   } else {
     callback();
@@ -117,7 +112,7 @@ const validateCode = (rule: any, value: any, callback: any) => {
 
 const validatePassword = (rule: any, value: any, callback: any) => {
   if (value === "") {
-    callback(new Error("请输入密码"));
+    callback(new Error("请输入新密码"));
   } else {
     if (ruleForm.confirmPassword !== "") {
       if (!ruleFormRef.value) return;
@@ -138,7 +133,6 @@ const validateConfirmPassword = (rule: any, value: any, callback: any) => {
 };
 
 const ruleForm = reactive({
-  username: "",
   email: "",
   code: "",
   password: "",
@@ -146,7 +140,6 @@ const ruleForm = reactive({
 });
 
 const rules = reactive<FormRules<typeof ruleForm>>({
-  username: [{ required: true, message: "请输入账号", trigger: "blur" }],
   email: [{ required: true, validator: validateEmail, trigger: "blur" }],
   code: [{ required: true, validator: validateCode, trigger: "blur" }],
   password: [{ required: true, validator: validatePassword, trigger: "blur" }],
@@ -173,29 +166,18 @@ const handleSendCode = async () => {
   }
 };
 
-const getRegister = async () => {
-  if (!ruleForm.username.trim() || !ruleForm.password.trim()) {
-    ElMessage.error("用户名或密码不能为空");
-    return;
-  }
+const handleResetPassword = async () => {
   try {
-    const res = await getRegisterApi({
-      username: ruleForm.username,
-      password: ruleForm.password,
-      email: ruleForm.email,
-      code: ruleForm.code,
-    });
-
-    if (res.code === 200) {
-      ElMessage.success("注册成功！");
+    const res = await resetPassword(ruleForm.email, ruleForm.code, ruleForm.password);
+    if (res?.code === 200) {
+      ElMessage.success("密码重置成功，请重新登录");
       stopCountdown();
       router.push("/login");
     } else {
-      console.error("注册失败:", res.message);
-      ElMessage.error(res.message || "注册失败，请重试！");
+      ElMessage.error(res?.message || "重置密码失败，请重试");
     }
   } catch (error) {
-    console.error("注册请求失败:", error);
+    console.error("重置密码失败:", error);
     ElMessage.error("网络错误，请稍后重试！");
   }
 };
@@ -204,7 +186,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   formEl.validate((valid) => {
     if (valid) {
-      getRegister();
+      handleResetPassword();
     }
   });
 };
@@ -215,6 +197,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields();
 };
 </script>
+
 <style scoped lang="scss">
 .login {
     display: flex;
@@ -238,10 +221,10 @@ const resetForm = (formEl: FormInstance | undefined) => {
         border-radius: 5px;
 
         // margin:auto;
-      .sms-code-group {
-        display: flex;
-        align-items: center;
-      }
+        .sms-code-group {
+            display: flex;
+            align-items: center;
+        }
         .login-btn {
             display: flex;
             justify-content: center;

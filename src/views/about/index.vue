@@ -13,7 +13,7 @@
         v-model="query"
         placeholder="按用户名或邮箱搜索"
         clearable
-        style="width: 300px"
+        style="width: 200px"
         @keyup.enter="() => fetchUsers()"
         @blur="() => fetchUsers()"
       />
@@ -21,7 +21,7 @@
 
     <el-table :data="users">
       <el-table-column prop="username" label="用户名" />
-      <!-- <el-table-column prop="email" label="邮箱" /> -->
+      <el-table-column prop="email" label="邮箱" />
       <el-table-column prop="banned" label="状态" width="100">
         <template #default="{ row }">
           <el-tag type="danger" v-if="row.banned">已拉黑</el-tag>
@@ -56,10 +56,9 @@
       <!-- <el-button @click="fetchUsers">刷新</el-button> -->
       <el-pagination
         background
-        layout="prev, pager, next, sizes"
+        layout="prev, pager, next"
         :current-page="page"
         :page-size="pageSize"
-        :page-sizes="[5,10,20,50]"
         :total="total"
         @current-change="handleCurrentChange"
         @size-change="handleSizeChange"
@@ -180,7 +179,6 @@ onMounted(() => {
   border-radius: 17px;
   background: rgba(44, 100, 146, 0.5);
   margin-top: 20px;
-  /* 移动端优先：默认较窄的容器 */
   width: 90%;
   max-width: 1100px;
   min-height: 60vh;
@@ -188,7 +186,6 @@ onMounted(() => {
   padding: 16px;
   box-sizing: border-box;
   max-height: min(50vh, 360px);
-  overflow-y: auto;
   padding: 8px;
   border-radius: 6px;
   scrollbar-width: thin; /* Firefox: 宽度 */
