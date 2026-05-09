@@ -11,10 +11,10 @@
       </el-form-item>
       <el-form-item label="图片分类">
         <el-select
-          allow-create
+          
           clearable
           v-model="category"
-          filterable
+          
           placeholder="图片分类"
         >
           <el-option
@@ -24,14 +24,14 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="图片描述">
+      <!-- <el-form-item label="图片描述">
         <el-input
           type="text"
           autocomplete="off"
           v-model="description"
           placeholder="图片描述"
         />
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item label="图片标签">
         <el-select
           v-model="tags"
@@ -40,7 +40,7 @@
           allow-create
           default-first-option
           :reserve-keyword="false"
-          placeholder="图片标签"
+          placeholder="请输入图片标签或选择已有标签"    
         >
           <el-option
             v-for="item in classifyTags"
@@ -55,13 +55,14 @@
           <el-upload
             drag
             multiple
-            :limit="50"
+            :limit="10"
             :auto-upload="false"
             list-type="picture-card"
             :file-list="selectedFiles"
             :on-change="handleFileChange"
             :on-remove="handleFileRemove"
             :on-preview="handleFilePreview"
+            :on-exceed="handleFileExceed"
             accept="image/*"
           >
             <el-icon>
@@ -156,6 +157,11 @@ const handleFilePreview = (file) => {
   dialogVisible.value = true;
 };
 
+// 处理超出数量限制
+const handleFileExceed = (files, fileList) => {
+  ElMessage.warning(`最多只能上传 10 张图片`);
+};
+
 // 清空表单和状态
 const resetForm = () => {
   selectedFiles.value = [];
@@ -169,15 +175,16 @@ const resetForm = () => {
 
 // 上传文件
 const handleFileUpload = async () => {
+  if (selectedFiles.value.length === 0) {
+    ElMessage.warning("上传区域为空，请先选择图片");
+    return;
+  }
+
   const loading = ElLoading.service({
     lock: true,
     text: "Loading",
     background: "rgba(0, 0, 0, 0.7)",
   });
-  if (selectedFiles.value.length === 0) {
-    console.error("请先选择文件");
-    return;
-  }
 
   const formData = new FormData();
   selectedFiles.value.forEach((file) => {
@@ -186,15 +193,12 @@ const handleFileUpload = async () => {
   // 添加其他字段
   formData.append("category", category.value || "未分类"); // 分类字段
   formData.append("title", title.value || "未命名"); // 图片标题字段
-  formData.append("description", description.value || ""); // 图片描述字段
+  // formData.append("description", description.value || ""); // 图片描述字段
   formData.append("tags", JSON.stringify(tags.value)); // 将标签数组转换为 JSON 字符串
   formData.append("userrole", localStorage.getItem("username") || ""); // 用户名称
   try {
-    const response = await uploadWallpapers(formData).then((res) => {
-      loading.close();
-      ElMessage.success("上传成功");
-      return res;
-    });
+    const response = await uploadWallpapers(formData);
+    ElMessage.success("上传成功");
     // 假设后端返回的响应中包含压缩后的图片 URL
     if (response && response.data) {
       const uploadedImages = response.data.map((item) => ({
@@ -226,6 +230,8 @@ const handleFileUpload = async () => {
       error?.message ||
       "上传失败";
     ElMessage.error(detail); // 显示错误提示
+  } finally {
+    loading.close();
   }
 };
 function debounce(fn, wait = 800, immediate = true) {
@@ -339,7 +345,7 @@ onMounted(() => {
   .upload-wallpapers {
     width: 70%;
     padding: 20px;
-    min-height: 65vh;
+    min-height: 60vh;
   }
   .upload-preview {
     max-height: min(60vh, 520px);
@@ -347,6 +353,27 @@ onMounted(() => {
   .upload-wallpapers__title {
     font-size: 22px;
   }
+}
+
+/* 手机横屏（高度较小）：覆盖平板规则，避免被 768+ 宽度命中 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .upload-wallpapers {
+    width: 70%;
+    padding: 12px;
+    min-height: 40vh;
+  }
+  .upload-preview {
+    max-height: 55vh;
+  }
+  .upload-wallpapers__title {
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+   :deep(){
+    .el-form-item{
+      margin-bottom:  5px;
+    }
+   }
 }
 
 /* 桌面大屏 */
@@ -364,11 +391,12 @@ onMounted(() => {
   }
 }
 
-/* 横屏小屏（手机横屏或小平板横屏）调整：提高容器宽度，避免元素拥挤 */
+/* 小屏横屏（仅小屏设备） */
 @media (max-width: 767px) and (orientation: landscape) {
   .upload-wallpapers {
     width: 80%;
     padding: 12px;
+    min-height: 40vh;
   }
   .upload-preview {
     max-height: 60vh;

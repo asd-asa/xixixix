@@ -32,6 +32,31 @@
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
       }
+
+      .bg-video__image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+      }
+
+      .bg-video__video {
+        display: block;
+      }
+
+      .bg-video__image {
+        display: none;
+      }
+
+      @media (max-width: 767px) {
+        .bg-video__video {
+          display: none;
+        }
+
+        .bg-video__image {
+          display: block;
+        }
+      }
     </style>
   </head>
   <body>
@@ -46,7 +71,7 @@
       >
         <source src="/src/assets/static/ying.mp4" type="video/mp4" />
       </video>
-      <!-- <img src="/src/assets/static/1.png" alt=""> -->
+      <img class="bg-video__image" src="/src/assets/static/2.png" alt="" />
     </div>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>

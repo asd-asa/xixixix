@@ -24,9 +24,9 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import logoMain from '@/assets/images/logo.png';
-import logoHome from '../../assets/images/logo (1).png';
-import logoSetting from '../../assets/images/bianmu.png';
+import logoMain from '@/assets/images/上传壁纸.jpeg';
+import logoHome from '../../assets/images/首页.png';
+import logoSetting from '../../assets/images/人员管理.jpeg';
 
 const router = useRouter();
 const route = useRoute();
@@ -50,7 +50,7 @@ watch(
 watch(
   () => route.path,
   (p) => {
-    currentImg1.value = p === '/' ? logoSetting : p === '/about' ? logoMain : logoSetting;
+    currentImg1.value = p === '/' ? logoSetting : p === '/about' ? logoHome : logoSetting;
   }
 );
 

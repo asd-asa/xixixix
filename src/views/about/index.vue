@@ -31,9 +31,9 @@
       <!-- <el-table-column prop="created_at" label="注册时间" width="180" /> -->
       <el-table-column label="操作" width="180">
         <template #default="{ row }">
-          <el-button size="small" type="primary" @click="viewUser(row)"
+          <!-- <el-button size="small" type="primary" @click="viewUser(row)"
             >查看</el-button
-          >
+          > -->
           <el-button
             size="small"
             :type="row.banned ? 'success' : 'warning'"
@@ -180,12 +180,10 @@ onMounted(() => {
   background: rgba(44, 100, 146, 0.5);
   margin-top: 20px;
   width: 90%;
-  max-width: 1100px;
   min-height: 60vh;
   margin: 30px auto 0;
   padding: 16px;
   box-sizing: border-box;
-  max-height: min(50vh, 360px);
   padding: 8px;
   border-radius: 6px;
   scrollbar-width: thin; /* Firefox: 宽度 */
