@@ -9,11 +9,8 @@
     <div class="contentdiv">
     <LayoutContent
       :wallpapers="wallpapers"
-      :total-count="total"
-      :has-more="hasMore"
-      @refresh="handleRefresh"
-      @loadMore="handleLoadMore"
-      @deleted="handleDeleted"
+      @deleted="deleted"
+      @imagesLoaded="onImagesLoaded"
     />
     <LayoutFoot
       :total="total"
@@ -30,7 +27,7 @@
 import LayoutSelect from "./components/LayoutSelect.vue";
 import LayoutContent from "./components/LayoutContent.vue";
 import LayoutFoot from "./components/LayoutFoot.vue";
-import { onMounted, ref, watch, computed } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { getWallpapersPage } from "@/api/wallpapers.js"; 
 
 const wallpapers = ref([]); // 存储壁纸数据
@@ -42,18 +39,10 @@ const selectedType = ref(""); // 当前选择的类型
 const currentPage = ref(1); // 当前页码
 const pageSize = ref(12); // 每页大小
 
-// 计算总页数和是否还有更多
-const totalPages = computed(() => {
-  const ps = pageSize.value || 1;
-  return Math.max(0, Math.ceil((total.value || 0) / ps));
-});
+const isLoading = ref(false);
 
-const hasMore = computed(() => {
-  // 当 totalPages 为 0 时，表示暂无数据；只有 currentPage < totalPages 时才有更多
-  return currentPage.value < totalPages.value;
-});
-
-const fetchWallpapers = async (append = false) => {
+const fetchWallpapers = async () => {
+  isLoading.value = true;
   try {
     const response = await getWallpapersPage(
       selectedCategory.value,
@@ -62,72 +51,64 @@ const fetchWallpapers = async (append = false) => {
       selectedResolution.value,
       selectedTags.value,
       selectedType.value
-    )
+    );
     const results = response.results || [];
-    if (append) {
-      wallpapers.value = wallpapers.value.concat(results);
-    } else {
-      wallpapers.value = results;
-    }
+    wallpapers.value = results;
     total.value = response.count || 0;
-  } catch (error) {
-    console.error("获取壁纸数据失败:", error);
-    if (error && error.message === "未找到 token，阻止请求发送") {
-      window.location.href = "/login";
-    }
+    return results;
+  } catch (err) {
+    console.error("获取壁纸失败:", err);
+    // 出错时也关闭 loading，避免一直转圈
+    isLoading.value = false;
   }
 };
-// 处理子组件发出的 loadMore 事件：加载下一页并追加
-const handleLoadMore = () => {
-  // 防止超页：只有在还有更多页时才请求下一页
-  if (!hasMore.value) return;
-  currentPage.value += 1;
-  fetchWallpapers(true);
+
+const onImagesLoaded = () => {
+  isLoading.value = false;
 };
 
-// 子组件刷新（重置第一页）
-const handleRefresh = () => {
-  currentPage.value = 1;
-  fetchWallpapers(false);
+const deleted = async () => {
+  // 保持当前页；若删除后当前页没有数据且不是第一页，则回退一页并再次请求
+  const results = await fetchWallpapers();
+  if ((results.length === 0 || total.value === 0) && currentPage.value > 1) {
+    currentPage.value = Math.max(1, currentPage.value - 1);
+    await fetchWallpapers();
+  }
 };
-// 子组件删除某一项（只从本地数组移除，不重新请求全部）
-const handleDeleted = (id) => {
-  wallpapers.value = wallpapers.value.filter((item) => item.id !== id);
-  if (typeof total.value === "number" && total.value > 0)
-    total.value = Math.max(0, total.value - 1);
-};
+
 // 监听分类变化
 const handleCategoryChange = (category) => {
   selectedCategory.value = category;
   currentPage.value = 1; // 重置页码
-  fetchWallpapers(false);
+  fetchWallpapers();
 };
 // 监听分辨率变化
 const handleResolutionChange = (resolution) => {
   wallpapers.value = [];
   selectedResolution.value = resolution;
   currentPage.value = 1; // 重置页码
-  fetchWallpapers(false);
+  fetchWallpapers();
 };
 // 监听搜索框变化
 const handleSearchChange = (tags) => {
+  wallpapers.value = [];
   selectedTags.value = tags;
   currentPage.value = 1; // 重置页码
-  wallpapers.value =[]
-  fetchWallpapers(false);
+  fetchWallpapers();
 };
 // 监听类型变化
 const handleimgCategoryChange = (type) => {
+  wallpapers.value = [];
   selectedType.value = type;
   currentPage.value = 1; // 重置页码
-  fetchWallpapers(false);
+  fetchWallpapers();
 };
 // 监听分页变化
 const handlePageChange = ({ page, pageSize: newPageSize }) => {
+  wallpapers.value = [];
   currentPage.value = page;
   pageSize.value = newPageSize;
-  wallpapers.value = [];
-  fetchWallpapers(false);
+  fetchWallpapers();
 };
 </script>
 
@@ -135,8 +116,9 @@ const handlePageChange = ({ page, pageSize: newPageSize }) => {
 .contentdiv{
   width: 100%;
   min-height: 93vh;
-  // box-sizing: border-box;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 </style>

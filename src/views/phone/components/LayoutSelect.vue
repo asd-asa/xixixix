@@ -42,9 +42,9 @@
             style="width: 170px"
             clearable
             :fetch-suggestions="querySearchAsync"
-            @input="handleSearchInput"
             @select="handleSearchSelect"
             @clear="handleClear"
+            @input="handleSearchInput"
           />
         </div>
         <div class="SelectContent">
@@ -73,10 +73,10 @@
 import { ref, defineEmits, onMounted } from "vue";
 import { getClassifyDetail } from "@/api/title";
 import { searchWallpapers } from "@/api/wallpapers";
-import { useRouter } from "vue-router";
+import { useRouter } from "vue-router"; 
+const router = useRouter();  
 
 const classifyDetail = ref([]); // 分类详情数据
-const router = useRouter();   
 
 // 分类选项
 const categories = ref([]);
@@ -152,14 +152,14 @@ const querySearchAsync = async (queryString, callback) => {
 const handleSearchInput = (value) => {
   emit("searchChange", value);
 };
-const handleSearchSelect = (item) => {
-  selectedTags.value = item.value; // 更新搜索框的值
-  emit("searchChange", item.value); // 将选中的值传递给父组件
-};
-const handleClear = () => {
-  selectedTags.value = ""; // 清空搜索框的值
-  emit("searchChange", ""); // 将清空的值传递给父组件
-};
+// const handleSearchSelect = (item) => {
+//   selectedTags.value = item.value; // 更新搜索框的值
+//   emit("searchChange", item.value); // 将选中的值传递给父组件
+// };
+// const handleClear = () => {
+//   selectedTags.value = ""; // 清空搜索框的值
+//   emit("searchChange", ""); // 将清空的值传递给父组件
+// };
 // 选中的分辨率
 const selectedResolution = ref("");
 // 当前选择的分类
@@ -167,7 +167,7 @@ const selectedCategory = ref("");
 // 搜索框的值
 const selectedTags = ref("");
 // 选中的类型
-const selectedType = ref("computer");
+const selectedType = ref("mobile");
 // 向父组件传递分类数据
 const emit = defineEmits([
   "categoryChange",
@@ -179,8 +179,8 @@ const handleCategoryChange = () => {
   emit("categoryChange", selectedCategory.value); // 触发事件，将分类数据传递给父组件
 };
 const handleimgCategoryChange = () => {
-   if (selectedType.value === "mobile") {
-    router.push("/phone");
+if (selectedType.value === "computer") {
+    router.push("/");
     return
   }else if (selectedType.value === "avatar") {
     router.push("/avatar");
@@ -205,7 +205,7 @@ onMounted(() => {
   margin-top: 10px;
   height: 50%;
   background: transparent;
-  background-color: #2c649280;
+  background-color: rgba(44, 100, 146, 0.5);
   border-radius: 50px;
   z-index: 2;
   ::v-deep .el-autocomplete .el-input__inner::placeholder {

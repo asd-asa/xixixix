@@ -1,9 +1,17 @@
 <template>
   <div class="LayoutContent">
     <div class="ContentList">
-      <div v-for="item in otherWallpapers" :key="item.id" class="Content-box">
-        <!-- 电脑壁纸 -->
-        <div class="Content">
+      <div
+        v-for="item in otherWallpapers"
+        :key="item.id"
+        :class="
+          item.media_type === 'avatar' ? 'Content-box-avatar' : 'Content-box'
+        "
+        @mouseenter="(event) => handleMouseEnter(event, item.title)"
+        @mouseleave="handleMouseLeave"
+      >
+        <!-- 头像壁纸 -->
+        <div class="Content-avatar">
           <img
             v-img-lazy="item.image_url"
             :alt="item.title"
@@ -12,9 +20,7 @@
             @load="handleImageLoad(item.id)"
             @error="handleImageLoad(item.id)"
           />
-          <!-- 弹窗 -->
           <div class="Popup">
-            <!-- 遍历标签 -->
             <div class="PopupTags">
               <span v-for="(tag, index) in parseTags(item.tags)" :key="index">
                 {{ tag }}
@@ -25,9 +31,7 @@
             </div>
             <div class="PopupSuccess">
               <button @click="gotoImg(item.image)">预览</button>
-              <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
-                删除
-              </button>
+              <button v-if="isAdmin" @click="deleteWallpaper(item.id)">删除</button>
               <button @click="download(item.id)">
                 下载
               </button>
@@ -35,47 +39,49 @@
           </div>
         </div>
       </div>
-    </div>
-    <div v-show="showPreview" class="PreviewOverlay">
-      <el-image-viewer
-        v-show="showPreview"
-        :url-list="srcList"
-        @close="showPreview = false"
-        show-progress
-      >
-        <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
-          <el-icon @click="setActiveItem(srcList.length - 1)">
-            <DArrowRight />
-          </el-icon>
-          <el-icon @click="actions('zoomOut')">
-            <ZoomOut />
-          </el-icon>
-          <el-icon
-            @click="actions('zoomIn', { enableTransition: false, zoomRate: 2 })"
-          >
-            <ZoomIn />
-          </el-icon>
-          <el-icon
-            @click="
-              actions('clockwise', {
-                rotateDeg: 180,
-                enableTransition: false,
-              })
-            "
-          >
-            <RefreshRight />
-          </el-icon>
-          <el-icon @click="actions('anticlockwise')">
-            <RefreshLeft />
-          </el-icon>
-          <el-icon @click="reset">
-            <Refresh />
-          </el-icon>
-          <el-icon @click="download(activeIndex)">
-            <Download />
-          </el-icon>
-        </template>
-      </el-image-viewer>
+      <div v-if="showPreview" class="PreviewOverlay">
+        <el-image-viewer
+          v-if="showPreview"
+          :url-list="srcList"
+          @close="showPreview = false"
+          show-progress
+        >
+          <template #toolbar="{ actions, reset, activeIndex, setActiveItem }">
+            <el-icon @click="setActiveItem(srcList.length - 1)">
+              <DArrowRight />
+            </el-icon>
+            <el-icon @click="actions('zoomOut')">
+              <ZoomOut />
+            </el-icon>
+            <el-icon
+              @click="
+                actions('zoomIn', { enableTransition: false, zoomRate: 2 })
+              "
+            >
+              <ZoomIn />
+            </el-icon>
+            <el-icon
+              @click="
+                actions('clockwise', {
+                  rotateDeg: 180,
+                  enableTransition: false,
+                })
+              "
+            >
+              <RefreshRight />
+            </el-icon>
+            <el-icon @click="actions('anticlockwise')">
+              <RefreshLeft />
+            </el-icon>
+            <el-icon @click="reset">
+              <Refresh />
+            </el-icon>
+            <el-icon @click="download(activeIndex)">
+              <Download />
+            </el-icon>
+          </template>
+        </el-image-viewer>
+      </div>
     </div>
   </div>
 </template>
@@ -103,8 +109,11 @@ const loadedImages = ref(0);
 const imageLoadedMap = ref<Record<number, boolean>>({});
 const preloaderImgs = ref<HTMLImageElement[]>([]); // 用于跟踪并可取消的预加载 Image 对象
 
+const showPopup = ref(false);
+const popupContent = ref("");
+const popupPosition = ref({ x: 0, y: 0 });
 
-const srcList = ref([]);
+const srcList = ref<string[]>([]);
 const showPreview = ref(false);
 const previewImage = ref("");
 
@@ -145,6 +154,7 @@ function allLoadedDone() {
     }, 500);
   }, 120);
 }
+
 watch(
   () => props.wallpapers,
   (newWallpapers) => {
@@ -166,7 +176,7 @@ watch(
       overlayHidden.value = false;
     }
 
-    // 开始 JS 预加载（独立于模板上的 img load），优先使用 `image` 字段
+    // 开始 JS 预加载（独立于模板上的 img load）
     list.forEach((item: any) => {
       const img = new Image();
       preloaderImgs.value.push(img);
@@ -185,8 +195,8 @@ watch(
         }
         if (loadedImages.value >= totalImages.value) allLoadedDone();
       };
-            // 必须使用 image 字段（下载逻辑依赖 image）
-            img.src = item.image || "";
+      // 优先用 image_url；若无则用 image 字段
+      img.src = item.image_url || item.image || "";
     });
   },
   { immediate: true }
@@ -207,7 +217,7 @@ function hideOverlayImmediate() {
   overlayVisible.value = false;
   emit("imagesLoaded");
 }
-// 只展示电脑壁纸
+
 const otherWallpapers = computed(() => props.wallpapers || []);
 
 const preloadImage = (url: string) => {
@@ -215,11 +225,11 @@ const preloadImage = (url: string) => {
   img.src = url;
 };
 
-const parseTags = (tags: any) => {
+const parseTags = (t: any) => {
   try {
-    if (!tags) return [];
-    if (Array.isArray(tags)) return tags;
-    return JSON.parse(tags || "[]");
+    if (!t) return [];
+    if (Array.isArray(t)) return t;
+    return JSON.parse(t || "[]");
   } catch (e) {
     return [];
   }
@@ -271,7 +281,16 @@ const deleteWallpaper = async (id: number) => {
   }
 };
 
-// 支持两种调用：传入 wallpaper id（来自模板）或传入 srcList 的索引（来自预览工具栏）
+const handleMouseEnter = (event: MouseEvent, label: string) => {
+  popupContent.value = label;
+  popupPosition.value = { x: event.clientX, y: event.clientY };
+  showPopup.value = true;
+};
+
+const handleMouseLeave = () => {
+  showPopup.value = false;
+};
+
 const download = (value: number) => {
   let url = "";
   let wallpaper: any = null;
@@ -329,7 +348,6 @@ const download = (value: number) => {
 <style scoped lang="scss">
 .LayoutContent {
   width: 95%;
-  position: relative;
   margin-top: 15px;
   background: transparent;
   margin: 0 auto;
@@ -339,37 +357,38 @@ const download = (value: number) => {
     justify-content: center;
     align-items: center;
 
-    .Content-box {
+    .Content-box-avatar {
       border-radius: 10px;
       display: flex;
-      width: 30%;
+      width: 20%;
       margin: 1% 0px 1% 1vw;
       justify-content: center;
       align-items: center;
-      box-sizing: border-box;
-      aspect-ratio: 16 / 10;
+      aspect-ratio: 1 / 1;
       overflow: hidden;
     }
     @media (max-width: 1400px) {
-      .Content-box {
+      .Content-box-avatar {
         width: 40%;
       }
     }
 
     @media (max-width: 800px) {
-      .Content-box {
+      .Content-box-avatar {
         width: 100%;
       }
     }
-    .Content {
+      .Content-avatar {
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 100%;
-      height: 100%;
       position: relative;
+      width: 70%;
+      height: 70%;
+      background-color: transparent;
       border-radius: 10px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
       overflow: hidden;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
 
@@ -386,7 +405,7 @@ const download = (value: number) => {
         border-radius: 10px;
       }
 
-      /* 弹窗 */
+      /* 弹窗（深色风格） */
       .Popup {
         width: 80%;
         height: 80%;
@@ -414,7 +433,9 @@ const download = (value: number) => {
           border-radius: 30px;
           font-size: 12px;
           color: #f3f3f3;
+          margin-bottom: 5px;
           font-weight: 600;
+          margin-right: 5px;
           padding: 0 8px;
           display: inline-flex;
           align-items: center;
@@ -451,7 +472,6 @@ const download = (value: number) => {
           align-items: center;
           gap: 15px;
 
-          /* 按钮和描述之间的间距 */
           button {
             cursor: pointer;
             width: 70%;
@@ -464,13 +484,14 @@ const download = (value: number) => {
             transition: background-color 0.18s ease, transform 0.12s ease;
 
             &:hover {
-              background-color: rgba(0, 0, 0, 0.56);
+              background-color: rgba(0, 0, 0, 0.36);
               transform: translateY(-2px);
               pointer-events: auto;
             }
           }
         }
       }
+
       /* 鼠标悬浮时显示弹窗 */
       &:hover .Popup {
         transform: translate(-50%, -50%);
@@ -493,7 +514,120 @@ const download = (value: number) => {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+
+    .Previewimg {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .image-close {
+      width: 40px;
+      height: 40px;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: 1001;
+
+      &:hover {
+        background-color: #f0f0f0;
+        /* 悬浮时颜色变化 */
+        pointer-events: auto;
+        /* 启用鼠标事件 */
+      }
+
+      &:active {
+        background-color: #d0d0d0;
+        pointer-events: auto;
+      }
+    }
+
+    .image-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.55);
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      z-index: 1001;
+
+      .image-bar__btns {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .el-button {
+        background-color: rgba(0, 0, 0, 0.28);
+        color: #f3f3f3;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.18s ease, transform 0.12s ease;
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.36);
+          transform: translateY(-2px);
+        }
+      }
+    }
   }
+}
+.ImagesOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.65));
+  color: #fff;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  opacity: 1;
+  pointer-events: all;
+
+  .overlay-inner {
+    text-align: center;
+    padding: 20px;
+    backdrop-filter: blur(6px) saturate(120%);
+    border-radius: 12px;
+  }
+  .spinner {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #fff;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  }
+
+  .progress {
+    font-size: 14px;
+    opacity: 0.95;
+  }
+}
+
+/* 隐藏过渡（先触发淡出）*/
+.ImagesOverlay--hidden {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.995);
+  pointer-events: none;
 }
 /* 图片加载特效：初始显示渐变占位并带轻微模糊/缩放，加载完成平滑过渡到清晰 */
 img {
@@ -502,19 +636,18 @@ img {
   display: block;
   object-fit: cover;
   border-radius: inherit;
-  /* 更短的过渡与更自然的缓动 */
   transition: filter 420ms cubic-bezier(0.2, 0.9, 0.3, 1),
     transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 300ms ease;
 
-  /* 初始占位：模糊 + 缩放 + 流光背景，提升加载感 */
+  /* 初始占位：模糊 + 缩放 + 流光背景（深色） */
   filter: blur(10px) saturate(0.95);
   transform: scale(1.04);
   opacity: 0.98;
+  background: linear-gradient(90deg, #121212 25%, #1e1e1e 50%, #121212 75%);
   background-size: 200% 100%;
   animation: placeholderShimmer 1.6s linear infinite;
 }
 
-/* 图片加载完成：清晰、复位缩放并关闭占位动画 */
 img.is-loaded {
   filter: none;
   transform: scale(1);
@@ -523,14 +656,12 @@ img.is-loaded {
   animation: none;
 }
 
-/* 旋转动画保留用于蒙版 spinner */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* 占位流光动画 */
 @keyframes placeholderShimmer {
   0% {
     background-position: 200% 0;
@@ -540,7 +671,6 @@ img.is-loaded {
   }
 }
 
-/* 无动画偏好时禁用动画（无障碍友好） */
 @media (prefers-reduced-motion: reduce) {
   img,
   .spinner {
@@ -548,4 +678,5 @@ img.is-loaded {
     animation: none !important;
   }
 }
+
 </style>

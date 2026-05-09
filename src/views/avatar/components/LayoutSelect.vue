@@ -3,6 +3,7 @@
     <div class="container">
       <div class="ColumnSelectTitle">
         <div class="SelectContent">
+          <!-- <h2 style="width: 100px">分类</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedCategory"
@@ -20,6 +21,7 @@
           </el-select>
         </div>
         <div class="SelectContent">
+          <!-- <h2 style="width: 100px">壁纸类型</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedType"
@@ -36,18 +38,20 @@
           </el-select>
         </div>
         <div class="SelectContent">
+          <!-- <h2 style="width: 100px">搜索</h2> -->
           <el-autocomplete
             v-model="selectedTags"
             placeholder="输入标签"
             style="width: 170px"
             clearable
             :fetch-suggestions="querySearchAsync"
-            @input="handleSearchInput"
             @select="handleSearchSelect"
             @clear="handleClear"
+            @input="handleSearchInput"
           />
         </div>
         <div class="SelectContent">
+          <!-- <h2 style="width: 100px">分辨率</h2> -->
           <!-- 分类选择器 -->
           <el-select
             v-model="selectedResolution"
@@ -167,7 +171,7 @@ const selectedCategory = ref("");
 // 搜索框的值
 const selectedTags = ref("");
 // 选中的类型
-const selectedType = ref("computer");
+const selectedType = ref("avatar");
 // 向父组件传递分类数据
 const emit = defineEmits([
   "categoryChange",
@@ -182,8 +186,8 @@ const handleimgCategoryChange = () => {
    if (selectedType.value === "mobile") {
     router.push("/phone");
     return
-  }else if (selectedType.value === "avatar") {
-    router.push("/avatar");
+  }else if (selectedType.value === "computer") {
+    router.push("/");
     return
   }
   emit("imgCategoryChange", selectedType.value); // 触发事件，将类型数据传递给父组件
@@ -205,7 +209,7 @@ onMounted(() => {
   margin-top: 10px;
   height: 50%;
   background: transparent;
-  background-color: #2c649280;
+  background-color: rgba(44, 100, 146, 0.5);
   border-radius: 50px;
   z-index: 2;
   ::v-deep .el-autocomplete .el-input__inner::placeholder {

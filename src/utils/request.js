@@ -10,12 +10,12 @@ let baseURL= 'http://localhost:8000/'
 
 const http = axios.create({
     baseURL: baseURL,
-    timeout: 5000
+    timeout: 120000,
   })
 
 //请求白名单
 const whiteList = ['user/login/','user/register/','wallpapers/wallpapers/page/','title/category-list/'
-    ,'title/category-item/','title/navigation-bar/',"wallpapers/wallpapers/"
+    ,'title/category-item/','title/navigation-bar/',"wallpapers/wallpapers/","user/send-code/","user/password-reset/"
 ]
 // 添加请求拦截器
 http.interceptors.request.use(
@@ -113,19 +113,24 @@ export function post(url,params={}) {
     })
 }
 // 文件上传
-export function upload(url, params={}) {
+// 文件上传：不要手动设置 Content-Type（让浏览器/axios 自动添加 boundary）
+// 支持传入额外 axios config（如 onUploadProgress、timeout）
+export function upload(url, params = {}, config = {}) {
     return new Promise((resolve, reject) => {
         http({
-            url:url,
+            url: url,
             method: 'post',
             data: params,
-            headers: {'Content-Type': 'multipart/form-data'}
-        }).then(response => {
-            resolve(response.data)
-        }).catch(err => {
-            reject(err)
+            // 不在这里强制设置 headers, 避免触发预检或破坏 boundary。
+            ...config,
         })
-    })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((err) => {
+                reject(err);
+            });
+    });
 }
 // delete请求
 export function del(url, params={}) {

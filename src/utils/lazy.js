@@ -1,6 +1,4 @@
 // 定义懒加载插件
-//vueuse提供的useIntersectionObserver方法，用于监听元素是否进入视口区域
-//当元素进入视口区域时，将图片的src属性设置为指令绑定的值，即图片的url
 import { useIntersectionObserver } from '@vueuse/core'
 
 export const lazyPlugin = {
