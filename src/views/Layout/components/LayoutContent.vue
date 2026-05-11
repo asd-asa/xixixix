@@ -272,6 +272,26 @@ const deleteWallpaper = async (id: number) => {
 };
 
 // 支持两种调用：传入 wallpaper id（来自模板）或传入 srcList 的索引（来自预览工具栏）
+// 下载时优先使用壁纸标题作为文件名，并做文件名清理与后缀回退
+function getBasenameFromUrl(u: string) {
+  try {
+    return decodeURIComponent(u.split('/').pop() || '');
+  } catch (e) {
+    return u.split('/').pop() || '';
+  }
+}
+
+function sanitizeFilename(name: string) {
+  if (!name) return '';
+  // 移除文件系统禁止或会导致问题的字符
+  name = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').trim();
+  // 移除末尾的点和空格
+  name = name.replace(/[. ]+$/g, '');
+  // 限制长度
+  if (name.length > 100) name = name.slice(0, 100);
+  return name;
+}
+
 const download = (value: number) => {
   let url = "";
   let wallpaper: any = null;
@@ -294,8 +314,21 @@ const download = (value: number) => {
     wallpaper = (props.wallpapers as any).find((item: any) => item.image === url);
   }
 
-  const suffix = url.slice(url.lastIndexOf('.'));
-  const filename = Date.now() + suffix;
+  const idx = url.lastIndexOf('.');
+  const suffix = idx !== -1 ? url.slice(idx) : '.jpg';
+
+  // 优先使用标题（非“未命名”），若标题为空则使用 URL 基名；
+  // 若标题为精确的“未命名”，则回退到时间戳（保持原有数字命名行为）
+  let filenameBase = '';
+  const rawTitle = wallpaper && wallpaper.title ? String(wallpaper.title).trim() : '';
+  if (rawTitle && rawTitle !== '未命名') {
+    filenameBase = sanitizeFilename(rawTitle);
+  } else if (!rawTitle) {
+    const urlBase = getBasenameFromUrl(url).replace(/\.[^.]+$/, '');
+    filenameBase = sanitizeFilename(urlBase);
+  }
+  if (!filenameBase) filenameBase = String(Date.now());
+  const filename = filenameBase + suffix;
 
   fetch(url)
     .then((response) => {

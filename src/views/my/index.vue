@@ -7,14 +7,12 @@
       class="demo-ruleForm"
     >
       <el-form-item label="图片名称">
-        <el-input type="text" autocomplete="off" v-model="title" />
+        <el-input type="text" autocomplete="off" placeholder="请输入图片名称" v-model="title" />
       </el-form-item>
       <el-form-item label="图片分类">
         <el-select
-          
           clearable
           v-model="category"
-          
           placeholder="图片分类"
         >
           <el-option
@@ -182,7 +180,8 @@ const handleFileUpload = async () => {
 
   const loading = ElLoading.service({
     lock: true,
-    text: "Loading",
+    fullscreen: true,
+    text: "正在上传...",
     background: "rgba(0, 0, 0, 0.7)",
   });
 
@@ -411,5 +410,11 @@ onMounted(() => {
   }
 }
 
+</style>
+<style scoped>
+:deep(.el-input__inner)::placeholder {
+  color: #fff !important;
+  opacity: 1 !important;
+}
 </style>
 
