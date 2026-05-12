@@ -13,6 +13,11 @@ const http = axios.create({
     timeout: 120000,
   })
 
+const cleanupAuthListeners = () => {
+    window.__cleanupAdminHeaderStorageListener?.();
+    delete window.__cleanupAdminHeaderStorageListener;
+}
+
 //请求白名单
 const whiteList = ['user/login/','user/register/','wallpapers/wallpapers/page/','title/category-list/'
     ,'title/category-item/','title/navigation-bar/',"wallpapers/wallpapers/","user/send-code/","user/password-reset/"
@@ -70,11 +75,13 @@ http.interceptors.response.use(
                     console.error('刷新 token 失败:', refreshError);
                     window.localStorage.removeItem('token');
                     window.localStorage.removeItem('refresh_token');
+                    cleanupAuthListeners();
                     window.location.href = '/login';
                 }
             } else {
                 console.warn('未找到 refresh token，跳转到登录页面');
                 window.localStorage.removeItem('token');
+                cleanupAuthListeners();
                 window.location.href = '/login';
             }
         }
@@ -104,6 +111,34 @@ export function post(url,params={}) {
         http({
             url:url,
             method: 'post',
+            data: params,
+        }).then(response => {
+            resolve(response.data)
+        }).catch(err => {
+            reject(err)
+        })
+    })
+}
+// put请求
+export function put(url,params={}) {
+    return new Promise((resolve, reject) => {
+        http({
+            url:url,
+            method: 'put',
+            data: params,
+        }).then(response => {
+            resolve(response.data)
+        }).catch(err => {
+            reject(err)
+        })
+    })
+}
+// patch请求
+export function patch(url,params={}) {
+    return new Promise((resolve, reject) => {
+        http({
+            url:url,
+            method: 'patch',
             data: params,
         }).then(response => {
             resolve(response.data)

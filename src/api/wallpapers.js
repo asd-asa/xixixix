@@ -1,4 +1,4 @@
-import { get,post,upload,del,} from '@/utils/request.js'
+import { get,post,put,patch,upload,del,} from '@/utils/request.js'
 
 
 // 上传壁纸
@@ -20,4 +20,19 @@ export const downloadWallpapers = (id) => {
 //删除壁纸
 export const deleteWallpapers = (id) => {
     return del(`wallpapers/wallpapers/${id}/delete/`);
+};
+
+// 获取待审核壁纸列表（后端接口：/wallpapers/pending/）
+export const getPendingWallpapers = (page, pageSize) => {
+    return get('wallpapers/wallpapers/pending/', { page, pageSize });
+};
+
+// 编辑壁纸（后端接口：/wallpapers/<id>/edit/）
+export const editWallpaper = (id, data) => {
+    return patch(`wallpapers/wallpapers/${id}/edit/`, data);
+};
+
+// 审核壁纸（后端接口：/wallpapers/<id>/review/
+export const reviewWallpaper = (id, data) => {
+    return post(`wallpapers/wallpapers/${id}/review/`, data);
 };

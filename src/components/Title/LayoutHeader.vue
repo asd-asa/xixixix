@@ -9,7 +9,7 @@
              @keydown.enter="handleLogoClick">
           <img :src="currentImg" alt="logo">
         </div>
-        <div v-if="isAdmin" :class="['ColumnImg1', { active: currentRoute === '/setting' }]"
+        <div v-if="isAdmin" :class="['ColumnImg1', { active: currentRoute.startsWith('/admin') }]"
              @click="Clicksetting"
              role="button"
              tabindex="0"
@@ -26,7 +26,7 @@ import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import logoMain from '@/assets/images/上传壁纸.jpeg';
 import logoHome from '../../assets/images/首页.png';
-import logoSetting from '../../assets/images/人员管理.jpeg';
+import logoSetting from '../../assets/images/后台管理.jpeg';
 
 const router = useRouter();
 const route = useRoute();
@@ -35,8 +35,8 @@ const route = useRoute();
 const currentRoute = ref(route.path);
 const currentImg = ref(route.path === '/my' ? logoHome : logoMain);
 
-// 关于/设置图标：主页显示 logoSetting，about 页面显示 logoMain
-const currentImg1 = ref(route.path === '/' ? logoSetting : route.path === '/about' ? logoMain : logoSetting);
+// 管理图标：在后台时显示返回首页图标，否则显示后台入口图标
+const currentImg1 = ref(route.path.startsWith('/admin') ? logoHome : logoSetting);
 
 // 跟踪路由变化，保持图片与路由一致（刷新后不会错误切换）
 watch(
@@ -50,7 +50,7 @@ watch(
 watch(
   () => route.path,
   (p) => {
-    currentImg1.value = p === '/' ? logoSetting : p === '/about' ? logoHome : logoSetting;
+    currentImg1.value = p.startsWith('/admin') ? logoHome : logoSetting;
   }
 );
 
@@ -84,10 +84,14 @@ const updateIsAdmin = () => {
 onMounted(() => {
   updateIsAdmin();
   window.addEventListener('storage', updateIsAdmin);
+  window.__cleanupAdminHeaderStorageListener = () => {
+    window.removeEventListener('storage', updateIsAdmin);
+  };
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('storage', updateIsAdmin);
+  window.__cleanupAdminHeaderStorageListener?.();
+  delete window.__cleanupAdminHeaderStorageListener;
 });
 
 // 在路由变化时也重新评估（登录后单页内导航也会触发）
@@ -97,13 +101,13 @@ watch(
     updateIsAdmin();
   }
 );
-// 点击设置跳转到 about 页面
+// 点击图标：后台<->首页切换
 const Clicksetting = async () => {
   // 只负责导航，图片/状态由上面的 watch 自动同步
-  if (currentRoute.value === '/about') {
+  if (currentRoute.value.startsWith('/admin')) {
     await router.push('/');
   } else {
-    await router.push('/about');
+    await router.push('/admin/wallpapers');
   }
 };
 </script>

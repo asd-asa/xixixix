@@ -11,12 +11,30 @@ import About from '@/views/about/index.vue'
 import My from '@/views/my/index.vue'
 import Register from '@/views/Register/index.vue'
 import ForgotPassword from '@/views/ForgotPassword/index.vue'
+import AdminLayout from '@/views/admin/Layout.vue'
+import AdminDashboard from '@/views/admin/Dashboard.vue'
+import AdminWallpapers from '@/views/admin/Wallpapers.vue'
+import AdminUsers from '@/views/admin/Users.vue'
+import AdminCategories from '@/views/admin/Categories.vue'
+import AdminTags from '@/views/admin/Tags.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
       path: '/',
       component: Layout,
+    },
+    {
+      path: '/admin',
+      component: AdminLayout,
+      children: [
+        { path: 'dashboard', component: AdminDashboard },
+        { path: 'wallpapers', component: AdminWallpapers },
+        { path: 'users', component: AdminUsers },
+        { path: 'categories', component: AdminCategories },
+        { path: 'tags', component: AdminTags },
+        { path: '', redirect: '/admin/dashboard' }
+      ]
     },
     {
       path: '/login',

@@ -39,7 +39,7 @@ ul {
 }
 
 .el-form, .el-main, .el-header, .el-footer, 
-.el-scrollbar, .el-container , .el-aside, .el-scrollbar__view,
+.el-scrollbar , .el-scrollbar__view,
 .el-menu,.el-tabs,.tabs-menu,.el-table,.el-table__body-wrapper,
 .el-table__body,.el-table__row,.el-table__cell,.el-input,
 .el-input__inner,.el-card,.el-card__body.el-tabs__nav,
@@ -160,3 +160,60 @@ html {
     inset 0 0 8px rgba(0, 0, 0, 0.35),   
     inset 0 0 20px rgba(255, 255, 255, 0.35); 
 }
+
+  /* 统一后台弹窗样式（Dialog 与 MessageBox） */
+  /* 对话框整体 */
+  .el-dialog__wrapper .el-dialog,
+  .el-dialog {
+    background-color: rgba(44, 100, 146) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6) !important;
+  }
+  .el-dialog__header,
+  .el-dialog__body,
+  .el-dialog__footer {
+    background: transparent !important;
+    color: #fff !important;
+  }
+  .el-dialog__title {
+    color: #fff !important;
+  }
+  .el-dialog__footer .el-button {
+    border-color: rgba(255,255,255,0.12) !important;
+    color: #fff !important;
+  }
+
+  /* MessageBox（确定/取消弹窗） */
+  .el-message-box__wrapper .el-message-box,
+  .el-message-box {
+    background-color: rgba(44, 100, 146) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6) !important;
+  }
+  .el-message-box__title {
+    color: #fff !important;
+  }
+  .el-message-box__message {
+    color: rgba(255,255,255,0.92) !important;
+  }
+  .el-message-box__btns .el-button {
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    color: #fff !important;
+  }
+  .el-message-box__btns .el-button--danger {
+    border-color: rgba(255,80,80,0.9) !important;
+    color: #fff !important;
+    background: rgba(255,80,80,0.12) !important;
+  }
+
+  /* 让 confirm 弹窗的遮罩更暗以突出弹窗 */
+  .v-modal {
+    background: rgba(0,0,0,0.55) !important;
+  }
+
+  /* 统一表单内控件颜色以配合暗背景 */
+  .el-dialog .el-input__inner,
+  .el-message-box .el-input__inner {
+    color: #fff !important;
+  }
