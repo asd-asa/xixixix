@@ -14,6 +14,7 @@
       @refresh="handleRefresh"
       @loadMore="handleLoadMore"
       @deleted="handleDeleted"
+      @back-to-top="handleBackToTop"
     />
     <LayoutFoot
       :total="total"
@@ -41,6 +42,7 @@ const selectedTags = ref(""); // 搜索框的值
 const selectedType = ref(""); // 当前选择的类型
 const currentPage = ref(1); // 当前页码
 const pageSize = ref(12); // 每页大小
+const lastManualPage = ref(1); // 记录最后一次手动点过的分页页码
 
 // 计算总页数和是否还有更多
 const totalPages = computed(() => {
@@ -126,7 +128,16 @@ const handleimgCategoryChange = (type) => {
 const handlePageChange = ({ page, pageSize: newPageSize }) => {
   currentPage.value = page;
   pageSize.value = newPageSize;
+  lastManualPage.value = page;
   wallpapers.value = [];
+  fetchWallpapers(false);
+};
+
+// 回到顶部时，优先回到最后一次手动点击的页；如果没点过分页，则回到第一页
+const handleBackToTop = () => {
+  const targetPage = lastManualPage.value > 0 ? lastManualPage.value : 1;
+  if (targetPage === currentPage.value) return;
+  currentPage.value = targetPage;
   fetchWallpapers(false);
 };
 </script>

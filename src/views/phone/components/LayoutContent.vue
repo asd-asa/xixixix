@@ -109,7 +109,6 @@ import {
 } from "@element-plus/icons-vue";
 import {
   ref,
-  defineProps,
   watch,
   onMounted,
   computed,
@@ -125,6 +124,7 @@ const emit = defineEmits<{
   (e: "loadMore"): void;
   (e: "deleted", id: number): void;
   (e: "imagesLoaded"): void;
+  (e: "backToTop"): void;
 }>();
 const overlayVisible = ref(true); // 初始显示蒙版
 const overlayHidden = ref(false); // 用于触发 CSS 隐藏过渡
@@ -366,6 +366,7 @@ const rebuildColumnsFor = async (
 // 跟踪上次瀑布流项目长度，仅对新增项进行追加
 let prevMasonryLenMobile =
   (masonryWallpapers.value && masonryWallpapers.value.length) || 0;
+let prevMasonryIdsMobile = (masonryWallpapers.value || []).map((it) => it.id);
 // 显示全屏预览
 const gotoImg = (image: string) => {
   if (!image) {
@@ -548,17 +549,23 @@ watch(
 // 监听 mobile 列表变化
 watch(masonryWallpapers, async (list) => {
   await attachScroll();
-  const newLen = (list || []).length;
+  const safeList = list || [];
+  const newLen = safeList.length;
+  const newIds = safeList.map((it) => it.id);
   const currCols = getColumnCount();
-  if (newLen < prevMasonryLenMobile || currCols !== columnCount.value) {
+  const isPureAppend =
+    newLen >= prevMasonryLenMobile &&
+    prevMasonryIdsMobile.every((id, index) => newIds[index] === id);
+
+  if (!isPureAppend || currCols !== columnCount.value) {
     await rebuildColumnsFor(
-      list || [],
+      safeList,
       columnsMobile,
       columnHeightsMobile,
       ".masonry-columns"
     );
   } else if (newLen > prevMasonryLenMobile) {
-    const newItems = list.slice(prevMasonryLenMobile);
+    const newItems = safeList.slice(prevMasonryLenMobile);
     await placeItemsTo(
       newItems,
       columnsMobile,
@@ -568,6 +575,7 @@ watch(masonryWallpapers, async (list) => {
   }
   loadingMore.value = false;
   prevMasonryLenMobile = newLen;
+  prevMasonryIdsMobile = newIds;
 });
 
 // 删除壁纸
@@ -580,33 +588,34 @@ const deleteWallpaper = async (id: number) => {
     const response = await deleteWallpapers(id);
     if (response.code == 200) {
       ElMessage.success("删除成功");
-    }
-    const target = props.wallpapers.find((it) => it.id === id);
-    if (
-      target &&
-      (target.media_type === "computer" || target.media_type === "avatar")
-    ) {
       emit("refresh");
-      return;
     }
-    // 先在本地移除：从 columns 中找到对应项并删除，仅调整该列高度，避免重排所有项
-    for (let c = 0; c < columnsMobile.value.length; c++) {
-      const idx = columnsMobile.value[c].findIndex((it) => it.id === id);
-      if (idx !== -1) {
-        const h = itemHeights.value[id] || 0;
-        columnsMobile.value[c].splice(idx, 1);
-        columnHeightsMobile.value[c] = Math.max(
-          0,
-          (columnHeightsMobile.value[c] || 0) - h
-        );
-        delete itemHeights.value[id];
-        prevMasonryLenMobile = Math.max(0, prevMasonryLenMobile - 1);
-        break;
-      }
-    }
+    // const target = props.wallpapers.find((it) => it.id === id);
+    // if (
+    //   target &&
+    //   (target.media_type === "computer" || target.media_type === "avatar")
+    // ) {
+    //   emit("refresh");
+    //   return;
+    // }
+    // // 先在本地移除：从 columns 中找到对应项并删除，仅调整该列高度，避免重排所有项
+    // for (let c = 0; c < columnsMobile.value.length; c++) {
+    //   const idx = columnsMobile.value[c].findIndex((it) => it.id === id);
+    //   if (idx !== -1) {
+    //     const h = itemHeights.value[id] || 0;
+    //     columnsMobile.value[c].splice(idx, 1);
+    //     columnHeightsMobile.value[c] = Math.max(
+    //       0,
+    //       (columnHeightsMobile.value[c] || 0) - h
+    //     );
+    //     delete itemHeights.value[id];
+    //     prevMasonryLenMobile = Math.max(0, prevMasonryLenMobile - 1);
+    //     break;
+    //   }
+    // }
 
-    // 通知父组件从 wallpapers 数据中删除该项（父组件只需 filter 掉，不必重新请求全部）
-    emit("deleted", id);
+    // // 通知父组件从 wallpapers 数据中删除该项（父组件只需 filter 掉，不必重新请求全部）
+    // emit("deleted", id);
   } catch (error) {
     console.error("删除失败:", error);
     ElMessage.error("删除失败，请稍后重试");
@@ -636,6 +645,7 @@ const scrollToTop = () => {
   if (typeof scrollFn === "function") {
     scrollFn.call(sc, { top: 0, behavior: "smooth" });
   }
+  emit("backToTop");
 };
 
 
