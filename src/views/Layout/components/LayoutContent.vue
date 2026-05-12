@@ -36,9 +36,9 @@
         </div>
       </div>
     </div>
-    <div v-show="showPreview" class="PreviewOverlay">
+    <div v-if="showPreview" class="PreviewOverlay">
       <el-image-viewer
-        v-show="showPreview"
+        v-if="showPreview"
         :url-list="srcList"
         @close="showPreview = false"
         show-progress
@@ -90,7 +90,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
-import { ref, defineProps, watch, computed } from "vue";
+import { ref, watch, computed } from "vue";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
 
 const emit = defineEmits(["deleted", "imagesLoaded"]);
@@ -104,7 +104,7 @@ const imageLoadedMap = ref<Record<number, boolean>>({});
 const preloaderImgs = ref<HTMLImageElement[]>([]); // 用于跟踪并可取消的预加载 Image 对象
 
 
-const srcList = ref([]);
+const srcList = ref<string[]>([]);
 const showPreview = ref(false);
 const previewImage = ref("");
 
@@ -259,19 +259,29 @@ const deleteWallpaper = async (id: number) => {
     ElMessage.error("只有 admin 可以删除");
     return;
   }
+
+  // 按 id 查找对应条目以显示正确的标题
+  const wallpaper = (props.wallpapers as any)?.find((item: any) => item.id === id) || {};
+
   try {
+    await ElMessageBox.confirm(`确认删除壁纸「${wallpaper.title || '-'}」吗？`, '提示', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
     const response = await deleteWallpapers(id);
-    if (response.code == 200) {
+    if (response && response.code == 200) {
       ElMessage.success("删除成功");
     }
     emit("deleted", id);
   } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
     console.error("删除失败:", error);
     ElMessage.error("删除失败，请稍后重试");
   }
 };
 
-// 支持两种调用：传入 wallpaper id（来自模板）或传入 srcList 的索引（来自预览工具栏）
 // 下载时优先使用壁纸标题作为文件名，并做文件名清理与后缀回退
 function getBasenameFromUrl(u: string) {
   try {

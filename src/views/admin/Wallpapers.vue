@@ -39,16 +39,25 @@
 
       <el-tab-pane label="壁纸审核" name="audit">
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-          <el-input v-model="titleQuery" placeholder="按标题搜索" clearable style="width:240px" @keyup.enter="handleSearch" />
-          <el-input v-model="tagQuery" placeholder="按标签搜索" clearable style="width:240px" @keyup.enter="handleSearch" />
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-input v-model="titleQuery" placeholder="按标题搜索" clearable style="width:240px" @keyup.enter="handleSearchs" />
+          <el-input v-model="tagQuery" placeholder="按标签搜索" clearable style="width:240px" @keyup.enter="handleSearchs" />
+          <el-button type="primary" @click="handleSearchs">搜索</el-button>
+          <el-button @click="resetSearchs">重置</el-button>
           <el-button :disabled="selectedAuditWallpapers.length === 0" type="success" @click="batchReviewWallpapers('approved')">批量通过</el-button>
           <el-button :disabled="selectedAuditWallpapers.length === 0" type="warning" @click="batchReviewWallpapers('rejected')">批量驳回</el-button>
         </div>
         <el-table :data="pendingWallpapers" @selection-change="handleAuditSelectionChange">
           <el-table-column type="selection" width="55" />
           <el-table-column prop="title" label="标题" />
+          <el-table-column label="标签" min-width="180">
+            <template #default="{ row }">
+              <div class="PopupTags">
+                <span v-for="(tag, index) in parseTags(row.tags)" :key="index">
+                  {{ tag }}
+                </span>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="userrole" label="上传者" width="140" />
           <el-table-column prop="category" label="分类" width="120" />
           <el-table-column label="当前状态" width="140">
@@ -90,7 +99,7 @@
 
     <el-image-viewer
       v-if="showPreview"
-      :url-list="srcList"
+      :url-list="[previewImage]"
       @close="showPreview = false"
       show-progress
     />
@@ -206,7 +215,12 @@ const refreshClassifyTags = (items = []) => {
 // 使用后端提供的 pending 接口获取待审核上传，失败回退到本地过滤
 const fetchPendingFromServer = async (p = 1) => {
   try {
-    const res = await getPendingWallpapers(p, auditPageSize.value)
+    const res = await getPendingWallpapers(
+      p,
+      auditPageSize.value,
+      titleQuery.value.trim(),
+      tagQuery.value.trim()
+    )
     // 兼容不同返回格式
     const list = Array.isArray(res) ? res : (res.results || res.data || [])
     pendingWallpapers.value = list
@@ -221,8 +235,12 @@ const fetchPendingFromServer = async (p = 1) => {
 }
 
 const fetchPendingFallback = () => {
+  const titleKw = titleQuery.value.trim().toLowerCase()
+  const tagKw = tagQuery.value.trim().toLowerCase()
   pendingWallpapers.value = (wallpapers.value || []).filter((item) => {
-    return normalizeStatus(item.status) === 'pending'
+    const titleOk = !titleKw || String(item.title || '').toLowerCase().includes(titleKw)
+    const tagOk = !tagKw || parseTags(item.tags).join(' ').toLowerCase().includes(tagKw)
+    return normalizeStatus(item.status) === 'pending' && titleOk && tagOk
   })
   auditTotal.value = pendingWallpapers.value.length
 }
@@ -249,7 +267,7 @@ const isAdminUser = () => {
 
 const fetchList = async (p = editPage.value) => {
   try {
-    const res = await getWallpapersPage('', p, editPageSize.value, '', tagQuery.value, '', titleQuery.value)
+    const res = await getWallpapersPage('', p, editPageSize.value, '', tagQuery.value.trim(), '', titleQuery.value.trim())
     wallpapers.value = res.results || []
     refreshClassifyTags(wallpapers.value)
     editPage.value = res.page || res.pagination?.page || p
@@ -264,6 +282,20 @@ const fetchList = async (p = editPage.value) => {
 const handleSearch = () => {
   editPage.value = 1
   fetchList(1)
+}
+
+const handleSearchs = async () => {
+  auditPage.value = 1
+  const ok = await fetchPendingFromServer(1)
+  if (!ok) fetchPendingFallback()
+}
+
+const resetSearchs = async () => {
+  titleQuery.value = ''
+  tagQuery.value = ''
+  auditPage.value = 1
+  const ok = await fetchPendingFromServer(1)
+  if (!ok) fetchPendingFallback()
 }
 
 const resetSearch = () => {
@@ -370,21 +402,6 @@ const buildSrcListFor = (row) => {
 
 const viewWallpaper = (row) => {
   const url = row.image || row.url || row.image_url || row.original || ''
-  if (!url) {
-    ElMessage.warning('未找到图片链接')
-    return
-  }
-  srcList.value = buildSrcListFor(row).filter(Boolean)
-  const currentIndex = srcList.value.indexOf(url)
-  if (currentIndex === -1) {
-    // 如果未找到就把当前图片放到第一位
-    srcList.value = [url, ...srcList.value]
-  } else {
-    srcList.value = [
-      ...srcList.value.slice(currentIndex),
-      ...srcList.value.slice(0, currentIndex),
-    ]
-  }
   previewImage.value = url
   showPreview.value = true
 }

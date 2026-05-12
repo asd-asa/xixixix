@@ -7,7 +7,6 @@ import Login from '@/views/login.vue'
 import Like from '@/views/like/index.vue'
 import Phone from '@/views/phone/index.vue'
 import Avatar from '@/views/avatar/index.vue'
-import About from '@/views/about/index.vue'
 import My from '@/views/my/index.vue'
 import Register from '@/views/Register/index.vue'
 import ForgotPassword from '@/views/ForgotPassword/index.vue'
@@ -47,10 +46,6 @@ const router = createRouter({
     {
       path: '/phone',
       component: Phone,
-    },
-    {
-      path: '/about',
-      component: About,
     },
     {
       path: '/avatar',

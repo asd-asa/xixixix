@@ -6,8 +6,8 @@ export function uploadWallpapers(data) {
     return upload('wallpapers/bulk-upload/', data)
 }
 //壁纸分页
-export const getWallpapersPage = (category,page, pageSize,resolution,tags,media_type) => {
-    return get('wallpapers/wallpapers/page/', { resolution,category,page, pageSize,tags,media_type});
+export const getWallpapersPage = (category,page, pageSize,resolution,tags,media_type,title) => {
+    return get('wallpapers/wallpapers/page/', { resolution,category,page, pageSize,tags,media_type,title});
 };
 //搜索壁纸
 export const searchWallpapers = (tags) => {
@@ -23,8 +23,9 @@ export const deleteWallpapers = (id) => {
 };
 
 // 获取待审核壁纸列表（后端接口：/wallpapers/pending/）
-export const getPendingWallpapers = (page, pageSize) => {
-    return get('wallpapers/wallpapers/pending/', { page, pageSize });
+// 允许按标题/标签一起筛选，便于管理员在审核页搜索
+export const getPendingWallpapers = (page, pageSize, title = '', tags = '') => {
+    return get('wallpapers/wallpapers/pending/', { page, pageSize, title, tags });
 };
 
 // 编辑壁纸（后端接口：/wallpapers/<id>/edit/）

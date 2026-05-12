@@ -96,7 +96,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
-import { ref, defineProps, watch, computed } from "vue";
+import { ref, watch, computed } from "vue";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
 
 const emit = defineEmits(["deleted", "imagesLoaded"]);
