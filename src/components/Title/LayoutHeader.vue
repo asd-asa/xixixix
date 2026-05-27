@@ -107,7 +107,7 @@ const Clicksetting = async () => {
   if (currentRoute.value.startsWith('/admin')) {
     await router.push('/');
   } else {
-    await router.push('/admin/wallpapers');
+    await router.push('/admin/dashboard');
   }
 };
 </script>

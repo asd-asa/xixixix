@@ -19,12 +19,12 @@
           <div class="stat-value">{{ totalUsers }}</div>
         </el-card>
       </el-col>
-      <!-- <el-col :xs="12" :sm="12" :md="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
-          <div class="stat-title">今日上传</div>
-          <div class="stat-value">{{ todayUploads }}</div>
+          <div class="stat-title">违规用户数</div>
+          <div class="stat-value">{{ violationUsers }}</div>
         </el-card>
-      </el-col> -->
+      </el-col>
     </el-row>
     <el-card class="chart-card">
       <div class="chart-title">壁纸类型数量统计</div>
@@ -42,7 +42,7 @@ import { listUsers } from '@/api/user.js'
 
 const router = useRouter()
 
-const todayUploads = ref(0)
+const violationUsers = ref(0)
 const totalWallpapers = ref('-')
 const totalUsers = ref('-')
 const pending = ref('-')
@@ -155,9 +155,12 @@ const fetchStats = async () => {
   }
   try {
     const u = await listUsers({ page: 1, pageSize: 500 })
+    const allUsers = u.data || u.results || []
     totalUsers.value = u.pagination?.total_count || '-' 
+    violationUsers.value = allUsers.filter((item) => item && item.banned).length
   } catch (e) {
     totalUsers.value = '-'
+    violationUsers.value = '-'
   }
 
   try {
@@ -165,21 +168,6 @@ const fetchStats = async () => {
     pending.value = p.count || (p.pagination && (p.pagination.total || p.pagination.total_count)) || '-'
   } catch (e) {
     pending.value = '-'
-  }
-
-  try {
-    const today = new Date()
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
-    const wAll = await getWallpapersPage('', 1, 100)
-    const items = wAll.results || []
-    todayUploads.value = items.filter((item) => {
-      const createdAt = item.created_at || item.createdAt || item.add_time || item.addTime
-      if (!createdAt) return false
-      const time = new Date(createdAt).getTime()
-      return !Number.isNaN(time) && time >= startOfDay
-    }).length
-  } catch (e) {
-    todayUploads.value = '-'
   }
 
   await updateChart()

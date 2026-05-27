@@ -12,7 +12,10 @@ import Register from '@/views/Register/index.vue'
 import ForgotPassword from '@/views/ForgotPassword/index.vue'
 import AdminLayout from '@/views/admin/Layout.vue'
 import AdminDashboard from '@/views/admin/Dashboard.vue'
-import AdminWallpapers from '@/views/admin/Wallpapers.vue'
+import AdminWallpapersComputer from '@/views/admin/WallpapersComputer.vue'
+import AdminWallpapersPhone from '@/views/admin/WallpapersPhone.vue'
+import AdminWallpapersAvatar from '@/views/admin/WallpapersAvatar.vue'
+import AdminWallpapersAudit from '@/views/admin/WallpapersAudit.vue'
 import AdminUsers from '@/views/admin/Users.vue'
 import AdminCategories from '@/views/admin/Categories.vue'
 import AdminTags from '@/views/admin/Tags.vue'
@@ -28,7 +31,12 @@ const router = createRouter({
       component: AdminLayout,
       children: [
         { path: 'dashboard', component: AdminDashboard },
-        { path: 'wallpapers', component: AdminWallpapers },
+        { path: 'wallpapers', redirect: '/admin/wallpapers/edit/computer' },
+        { path: 'wallpapers/edit', redirect: '/admin/wallpapers/edit/computer' },
+        { path: 'wallpapers/edit/computer', component: AdminWallpapersComputer },
+        { path: 'wallpapers/edit/phone', component: AdminWallpapersPhone },
+        { path: 'wallpapers/edit/avatar', component: AdminWallpapersAvatar },
+        { path: 'wallpapers/audit', component: AdminWallpapersAudit },
         { path: 'users', component: AdminUsers },
         { path: 'categories', component: AdminCategories },
         { path: 'tags', component: AdminTags },

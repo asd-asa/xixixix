@@ -164,6 +164,7 @@ onMounted(() => {
   :deep() {
     .el-form-item__label { color: #fff; }
     .el-table .cell { color: #fff; }
+    .el-table thead th .cell { color: #9be7b1; }
     .el-table tr { background-color: transparent !important; }
   }
  ::v-deep .el-input__wrapper .el-input__inner::placeholder { color: #fff; }

@@ -53,3 +53,28 @@ export function banUser(id, ban = true, uploader = null) {
   }
   return post(`user/users/${id}/ban/`, { ban, uploader: u });
 }
+
+// 获取用户收藏列表
+export function getFavorites(page = 1, pageSize = 20) {
+  return get('user/favorites/', { page, pageSize });
+}
+
+// 获取用户浏览记录
+export function getHistory(page = 1, pageSize = 20) {
+  return get('user/history/', { page, pageSize });
+}
+
+// 获取用户下载记录
+export function getDownloads(page = 1, pageSize = 20) {
+  return get('user/downloads/', { page, pageSize });
+}
+
+// 添加收藏（墙纸 ID）
+export function addFavorite(wallpaperId) {
+  return post('user/favorites/', { wallpaper: wallpaperId });
+}
+
+// 移除收藏（收藏记录 ID）
+export function removeFavorite(id) {
+  return del(`user/favorites/${id}/`);
+}

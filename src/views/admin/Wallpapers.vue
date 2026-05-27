@@ -516,8 +516,7 @@ const saveWallpaperEdit = async () => {
     // 刷新数据
     fetchList(editPage.value)
   } catch (e) {
-    console.error('保存失败', e)
-    ElMessage.error('保存失败')
+    console.error('上传图片类型与当前壁纸类型不匹配', e)
   }
 }
 
