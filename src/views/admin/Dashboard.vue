@@ -1,37 +1,42 @@
 <template>
   <div class="admin-dashboard">
-    <el-row :gutter="16">
-      <el-col :span="6">
+    <el-row :gutter="16" class="stats-grid">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-title">壁纸总数</div>
           <div class="stat-value">{{ totalWallpapers }}</div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-title">待审核数</div>
           <div class="stat-value">{{ pending }}</div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-title">注册用户数</div>
           <div class="stat-value">{{ totalUsers }}</div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <!-- <el-col :xs="12" :sm="12" :md="6">
         <el-card>
           <div class="stat-title">今日上传</div>
           <div class="stat-value">{{ todayUploads }}</div>
         </el-card>
-      </el-col>
+      </el-col> -->
     </el-row>
+    <el-card class="chart-card">
+      <div class="chart-title">壁纸类型数量统计</div>
+      <div ref="chartRef" class="chart-box"></div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import * as echarts from 'echarts'
 import { getWallpapersPage, getPendingWallpapers } from '@/api/wallpapers.js'
 import { listUsers } from '@/api/user.js'
 
@@ -41,6 +46,14 @@ const todayUploads = ref(0)
 const totalWallpapers = ref('-')
 const totalUsers = ref('-')
 const pending = ref('-')
+const chartRef = ref(null)
+let chartInstance = null
+
+const wallpaperTypeCounts = ref([
+  { name: '头像', value: 0 },
+  { name: '手机', value: 0 },
+  { name: '电脑', value: 0 }
+])
 
 
 const isAdminUser = () => {
@@ -58,6 +71,81 @@ const isAdminUser = () => {
   }
 };
 
+const extractTotal = (res) => {
+  if (!res) return '-'
+  return res.count || res.pagination?.total || res.pagination?.total_count || (Array.isArray(res.results) ? res.results.length : '-')
+}
+
+const fetchMediaTypeCount = async (mediaType) => {
+  try {
+    const res = await getWallpapersPage('', 1, 1, '', '', mediaType, '')
+    return Number(extractTotal(res)) || 0
+  } catch (e) {
+    return 0
+  }
+}
+
+const renderChart = () => {
+  if (!chartRef.value) return
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartRef.value)
+  }
+
+  chartInstance.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis'
+    },
+    grid: {
+      left: 12,
+      right: 12,
+      top: 40,
+      bottom: 24,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: wallpaperTypeCounts.value.map((item) => item.name),
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.45)' } },
+      axisLabel: { color: '#fff' }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } },
+      axisLabel: { color: '#fff' }
+    },
+    series: [{
+      name: '数量',
+      type: 'line',
+      smooth: true,
+      data: wallpaperTypeCounts.value.map((item) => item.value),
+      symbolSize: 10,
+      lineStyle: {
+        width: 3,
+        color: '#8fd3ff'
+      },
+      itemStyle: {
+        color: '#8fd3ff'
+      },
+      areaStyle: {
+        color: 'rgba(143, 211, 255, 0.18)'
+      }
+    }]
+  })
+}
+
+const updateChart = async () => {
+  wallpaperTypeCounts.value = [
+    { name: '头像', value: await fetchMediaTypeCount('avatar') },
+    { name: '手机', value: await fetchMediaTypeCount('mobile') },
+    { name: '电脑', value: await fetchMediaTypeCount('computer') }
+  ]
+  await nextTick()
+  renderChart()
+}
+
 const fetchStats = async () => {
   try {
     const w = await getWallpapersPage('', 1, 1)
@@ -66,8 +154,8 @@ const fetchStats = async () => {
     totalWallpapers.value = '-'
   }
   try {
-    const u = await listUsers({ page: 1, pageSize: 1 })
-    totalUsers.value = u.pagination?.total || u.count || '-' 
+    const u = await listUsers({ page: 1, pageSize: 500 })
+    totalUsers.value = u.pagination?.total_count || '-' 
   } catch (e) {
     totalUsers.value = '-'
   }
@@ -93,6 +181,8 @@ const fetchStats = async () => {
   } catch (e) {
     todayUploads.value = '-'
   }
+
+  await updateChart()
 }
 
 onMounted(()=>{
@@ -101,6 +191,21 @@ onMounted(()=>{
     return;
   }
   fetchStats()
+  window.addEventListener('resize', resizeChart)
+})
+
+const resizeChart = () => {
+  if (chartInstance) {
+    chartInstance.resize()
+  }
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', resizeChart)
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
 })
 </script>
 
@@ -120,9 +225,22 @@ onMounted(()=>{
   transition: width 240ms ease, padding 200ms ease;
 }
 
+.stats-grid {
+  margin-bottom: 16px;
+}
+
+.chart-card {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-box {
+  width: 100%;
+  height: 320px;
+}
+
 .stat-title{ color:#fff; font-size:14px }
 .stat-value{ font-size:28px; margin-top:8px; color:#fff }
-.chart-title{ margin-bottom:12px; color:#fff }
+.chart-title{ margin-bottom:12px; color:#fff; font-size:16px; font-weight:600 }
 
 :deep(.el-card) {
   background: rgba(255, 255, 255, 0.08);

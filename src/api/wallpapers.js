@@ -15,7 +15,7 @@ export const searchWallpapers = (tags) => {
 };
 //下载壁纸
 export const downloadWallpapers = (id) => {
-    return post(`wallpapers/wallpapers/download/${id}/`);
+    return  (`wallpapers/wallpapers/download/${id}/`);
 };
 //删除壁纸
 export const deleteWallpapers = (id) => {

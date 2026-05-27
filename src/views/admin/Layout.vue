@@ -3,11 +3,11 @@
     <el-aside width="220px" class="admin-aside">
       <el-menu router :default-active="$route.path" class="admin-menu" collapse-transition>
         <div class="menu-header">后台管理</div>
-        <!-- <el-menu-item index="/admin/dashboard">首页</el-menu-item> -->
+        <el-menu-item index="/admin/dashboard">首页</el-menu-item>
         <el-menu-item index="/admin/wallpapers">壁纸管理</el-menu-item>
         <el-menu-item index="/admin/users">用户管理</el-menu-item>
-        <!-- <el-menu-item index="/admin/categories">分类管理</el-menu-item>
-        <el-menu-item index="/admin/tags">标签管理</el-menu-item> -->
+        <el-menu-item index="/admin/categories">分类管理</el-menu-item>
+        <!-- <el-menu-item index="/admin/tags">标签管理</el-menu-item> -->
       </el-menu>
     </el-aside>
     <el-main class="admin-main">

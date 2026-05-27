@@ -109,6 +109,25 @@
         <el-form-item label="标题">
           <el-input v-model="editForm.title" />
         </el-form-item>
+        <el-form-item label="图片预览">
+          <div class="image-picker" @click="triggerImagePick">
+            <el-image
+              v-if="editForm.image"
+              :src="editForm.image"
+              fit="cover"
+              class="image-picker__preview"
+            />
+            <div v-else class="image-picker__empty">点击选择图片</div>
+            <div class="image-picker__mask">点击更换</div>
+          </div>
+          <input
+            ref="imageInputRef"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="handleImageChange"
+          />
+        </el-form-item>
         <el-form-item label="分类">
           <el-input v-model="editForm.category" />
         </el-form-item>
@@ -161,6 +180,9 @@ const auditPage = ref(1)
 const auditPageSize = ref(10)
 const auditTotal = ref(0)
 const editDialogVisible = ref(false)
+const imageInputRef = ref(null)
+const editImageFile = ref(null)
+const editImagePreviewUrl = ref('')
 const editForm = ref({
   id: null,
   title: '',
@@ -407,15 +429,43 @@ const viewWallpaper = (row) => {
 }
 
 const openEditDialog = (row) => {
+  if (editImagePreviewUrl.value) {
+    URL.revokeObjectURL(editImagePreviewUrl.value)
+    editImagePreviewUrl.value = ''
+  }
+  editImageFile.value = null
   editForm.value = {
     id: row.id,
     title: row.title || '',
-    image: row.image || row.url || '',
+    image: row.image || row.image_url || row.url || row.original || '',
     category: row.category || '',
     tags: parseTags(row.tags),
     status: normalizeStatus(row.status) || 'pending'
   }
   editDialogVisible.value = true
+}
+
+const triggerImagePick = () => {
+  imageInputRef.value?.click()
+}
+
+const handleImageChange = (event) => {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+  if (!file.type || !file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    event.target.value = ''
+    return
+  }
+
+  if (editImagePreviewUrl.value) {
+    URL.revokeObjectURL(editImagePreviewUrl.value)
+  }
+
+  editImageFile.value = file
+  editImagePreviewUrl.value = URL.createObjectURL(file)
+  editForm.value.image = editImagePreviewUrl.value
+  event.target.value = ''
 }
 
 const parseTags = (tags) => {
@@ -446,14 +496,23 @@ const parseTags = (tags) => {
 const saveWallpaperEdit = async () => {
   try {
     const tagsForSend = Array.isArray(editForm.value.tags) ? editForm.value.tags : parseTags(editForm.value.tags)
-    const payload = {
-      title: editForm.value.title,
-      category: editForm.value.category,
-      tags: JSON.stringify(tagsForSend),
+    const formData = new FormData()
+    formData.append('title', editForm.value.title || '')
+    formData.append('category', editForm.value.category || '')
+    formData.append('tags', JSON.stringify(tagsForSend))
+    if (editImageFile.value) {
+      formData.append('image', editImageFile.value)
     }
+
+    const payload = formData
     await editWallpaper(editForm.value.id, payload)
     ElMessage.success('已保存')
     editDialogVisible.value = false
+    if (editImagePreviewUrl.value) {
+      URL.revokeObjectURL(editImagePreviewUrl.value)
+      editImagePreviewUrl.value = ''
+    }
+    editImageFile.value = null
     // 刷新数据
     fetchList(editPage.value)
   } catch (e) {
@@ -553,6 +612,50 @@ h2{ margin:0; color:#fff }
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 12px;
+}
+
+.image-picker {
+  position: relative;
+  width: 160px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.image-picker__preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.image-picker__empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+.image-picker__mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.42));
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.image-picker:hover .image-picker__mask {
+  opacity: 1;
 }
 
 </style>
