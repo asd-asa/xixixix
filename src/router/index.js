@@ -10,6 +10,17 @@ import Avatar from '@/views/avatar/index.vue'
 import My from '@/views/my/index.vue'
 import Register from '@/views/Register/index.vue'
 import ForgotPassword from '@/views/ForgotPassword/index.vue'
+import MyUpload from '@/views/my/components/upload.vue'
+import MyFavorites from '@/views/my/components/Favorites.vue'
+import ComputerFavorites from '@/views/my/components/Favorites/ComputerFavorites.vue'
+import MobileFavorites from '@/views/my/components/Favorites/MobileFavorites.vue'
+import AvatarFavorites from '@/views/my/components/Favorites/AvatarFavorites.vue'
+import MyProfile from '@/views/my/components/profile.vue'
+import MyHistory from '@/views/my/components/history.vue'
+import ComputerHistory from '@/views/my/components/history/ComputerHistory.vue'
+import MobileHistory from '@/views/my/components/history/MobileHistory.vue'
+import AvatarHistory from '@/views/my/components/history/AvatarHistory.vue'
+import MyInfo from '@/views/my/components/info.vue'
 import AdminLayout from '@/views/admin/Layout.vue'
 import AdminDashboard from '@/views/admin/Dashboard.vue'
 import AdminWallpapersComputer from '@/views/admin/WallpapersComputer.vue'
@@ -31,8 +42,8 @@ const router = createRouter({
       component: AdminLayout,
       children: [
         { path: 'dashboard', component: AdminDashboard },
-        { path: 'wallpapers', redirect: '/admin/wallpapers/edit/computer' },
-        { path: 'wallpapers/edit', redirect: '/admin/wallpapers/edit/computer' },
+        // { path: 'wallpapers', redirect: '/admin/wallpapers/edit/computer' },
+        // { path: 'wallpapers/edit', redirect: '/admin/wallpapers/edit/computer' },
         { path: 'wallpapers/edit/computer', component: AdminWallpapersComputer },
         { path: 'wallpapers/edit/phone', component: AdminWallpapersPhone },
         { path: 'wallpapers/edit/avatar', component: AdminWallpapersAvatar },
@@ -62,6 +73,34 @@ const router = createRouter({
     {
       path: '/my',
       component: My,
+      children: [
+        { path: 'components/upload', component: MyUpload },
+        {
+          path: 'components/favorites',
+          component: MyFavorites,
+          children: [
+            { path: 'computer', component: ComputerFavorites },
+            { path: 'mobile', component: MobileFavorites },
+            { path: 'avatar', component: AvatarFavorites },
+            { path: '', redirect: '/my/components/favorites/computer' }
+          ]
+        },
+        { path: 'components/profile', component: MyProfile },
+        { path: 'components/history', component: MyHistory },
+        {
+          path: 'components/history',
+          component: MyHistory,
+          children: [
+            { path: 'computer', component: ComputerHistory },
+            { path: 'mobile', component: MobileHistory },
+            { path: 'avatar', component: AvatarHistory },
+            { path: '', redirect: '/my/components/history/computer' }
+          ]
+        },
+        { path: 'components/info', component: MyInfo },
+
+        { path: '', redirect: '/my/components/upload' }
+      ]
     },
     {
       path: '/register',

@@ -2,7 +2,7 @@
   <div class="Header">
     <div class="container">
       <div class="Column">
-        <div :class="['ColumnImg', { active: currentRoute === '/my' }]"
+        <div :class="['ColumnImg', { active: currentRoute.startsWith('/my') }]"
              @click="handleLogoClick"
              role="button"
              tabindex="0"
@@ -24,7 +24,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import logoMain from '@/assets/images/上传壁纸.jpeg';
+import logoMain from '@/assets/images/个人中心.jpeg';
 import logoHome from '../../assets/images/首页.png';
 import logoSetting from '../../assets/images/后台管理.jpeg';
 
@@ -33,7 +33,7 @@ const route = useRoute();
 
 // 初始根据当前路由决定显示的图片
 const currentRoute = ref(route.path);
-const currentImg = ref(route.path === '/my' ? logoHome : logoMain);
+const currentImg = ref(route.path.startsWith('/my') ? logoHome : logoMain);
 
 // 管理图标：在后台时显示返回首页图标，否则显示后台入口图标
 const currentImg1 = ref(route.path.startsWith('/admin') ? logoHome : logoSetting);
@@ -43,7 +43,7 @@ watch(
   () => route.path,
   (p) => {
     currentRoute.value = p;
-    currentImg.value = p === '/my' ? logoHome : logoMain;
+    currentImg.value = p.startsWith('/my') ? logoHome : logoMain;
   }
 );
 
@@ -56,10 +56,10 @@ watch(
 
 const handleLogoClick = async () => {
   // 只负责导航，图片/状态由上面的 watch 自动同步
-  if (currentRoute.value === '/my') {
+  if (currentRoute.value.startsWith('/my')) {
     await router.push('/');
   } else {
-    await router.push('/my');
+    await router.push('/my/components/upload');
   }
 };
 
@@ -206,6 +206,12 @@ const Clicksetting = async () => {
         max-width: 160px;
       }
     }
+  }
+}
+
+@media (max-width: 1024px) {
+  .Header {
+    display: none;
   }
 }
 </style>

@@ -170,21 +170,5 @@ onMounted(() => {
  ::v-deep .el-input__wrapper .el-input__inner::placeholder { color: #fff; }
   h2 { color: #fff; }
 }
-// @media (min-width: 768px) {
-//   .admin-users { width: 70%; padding: 20px; min-height: 65vh; margin: 30px auto 0; }
-//   .admin-users .el-table { max-height: min(60vh, 520px); overflow: auto; }
-//   .admin-users h2 { font-size: 22px; }
-// }
-// @media (min-width: 1200px) {
-//   .admin-users { width: 50%; padding: 24px; min-height: 68vh; }
-//   .admin-users .el-table { max-height: min(70vh, 720px); }
-//   .admin-users h2 { font-size: 24px; }
-// }
-// @media (max-width: 767px) and (orientation: landscape) {
-//   .admin-users { width: 80%; padding: 12px; }
-//   .admin-users .el-table { max-height: 60vh; }
-// }
-// @media (max-width: 767px) and (orientation: portrait) {
-//   .admin-users > div:last-child { display: flex; flex-direction: column; gap: 12px; }
-// }
+
 </style>

@@ -25,9 +25,12 @@
             </div>
             <div class="PopupSuccess">
               <button @click="gotoImg(item.image)">预览</button>
-              <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
-                删除
+              <button @click="favoriteWallpaper(item.id)">
+                收藏
               </button>
+              <!-- <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
+                删除
+              </button> -->
               <button @click="download(item.id)">
                 下载
               </button>
@@ -90,7 +93,11 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@element-plus/icons-vue";
+import axios from "axios";
 import { ref, watch, computed } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { getServerUrl } from "@/utils/request.js";
+import { ensureAuthenticated } from "@/utils/auth.js";
 import { downloadWallpapers, deleteWallpapers } from "@/api/wallpapers";
 
 const emit = defineEmits(["deleted", "imagesLoaded"]);
@@ -282,6 +289,21 @@ const deleteWallpaper = async (id: number) => {
   }
 };
 
+const favoriteWallpaper = async (id: number) => {
+  if (!ensureAuthenticated()) return;
+  try {
+    const formData = new FormData();
+    const userrole = window.localStorage.getItem('username') || ''
+    formData.append("userrole", userrole); // 用户名称
+
+    const response = await axios.post(`${getServerUrl()}wallpapers/favorite/${id}/favorite/`, formData);
+    ElMessage.success(response.data?.message || "收藏成功");
+  } catch (error) {
+    console.error("收藏失败:", error);
+    ElMessage.error("收藏失败，请稍后重试");
+  }
+};
+
 // 下载时优先使用壁纸标题作为文件名，并做文件名清理与后缀回退
 function getBasenameFromUrl(u: string) {
   try {
@@ -303,6 +325,7 @@ function sanitizeFilename(name: string) {
 }
 
 const download = (value: number) => {
+  if (!ensureAuthenticated()) return;
   let url = "";
   let wallpaper: any = null;
 
@@ -356,10 +379,8 @@ const download = (value: number) => {
       link.remove();
 
       if (wallpaper) {
-        downloadWallpapers(wallpaper.id).then((res: any) => {
-          if (res && typeof res.downloads === 'number') {
-            wallpaper.downloads = res.downloads;
-          }
+        void downloadWallpapers(wallpaper.id).catch((error) => {
+          console.error('下载记录上报失败:', error);
         });
       }
     })

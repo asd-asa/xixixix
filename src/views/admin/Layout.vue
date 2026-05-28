@@ -8,7 +8,7 @@
           <template #title >壁纸编辑</template>
           <el-menu-item index="/admin/wallpapers/edit/computer">电脑壁纸</el-menu-item>
           <el-menu-item index="/admin/wallpapers/edit/phone">手机壁纸</el-menu-item>
-          <el-menu-item index="/admin/wallpapers/edit/avatar">头像壁纸</el-menu-item>
+          <el-menu-item index="/admin/wallpapers/edit/avatar">头像</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="/admin/wallpapers/audit">壁纸审核</el-menu-item>
         <el-menu-item index="/admin/users">用户管理</el-menu-item>

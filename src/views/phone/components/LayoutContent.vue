@@ -34,9 +34,12 @@
                     </div>
                     <div class="PopupSuccess">
                       <button @click="gotoImg(item.image)">预览</button>
-                      <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
-                        删除
+                      <button @click="favoriteWallpaper(item.id)">
+                        收藏
                       </button>
+                      <!-- <button v-if="isAdmin" @click="deleteWallpaper(item.id)">
+                        删除
+                      </button> -->
                       <button @click="download(item.id)">
                         下载
                       </button>
@@ -98,6 +101,9 @@
 </template>
 
 <script setup lang="ts">
+import axios from "axios";
+import { getServerUrl } from "@/utils/request.js";
+import { ensureAuthenticated } from '@/utils/auth.js';
 import {
   DArrowRight,
   Download,
@@ -140,6 +146,21 @@ const showPopup = ref(false); // 是否显示弹窗
 const popupContent = ref(""); // 弹窗内容（标签名）
 const popupPosition = ref({ x: 0, y: 0 }); // 弹窗位置
 const srcList = ref([]); // 存储图片地址列表
+
+const favoriteWallpaper = async (id: number) => {
+  if (!ensureAuthenticated()) return;
+  try {
+    const formData = new FormData();
+     const userrole = window.localStorage.getItem('username') || ''
+    formData.append("userrole", userrole); // 用户名称
+
+    const response = await axios.post(`${getServerUrl()}wallpapers/favorite/${id}/favorite/`, formData);
+    ElMessage.success(response.data?.message || "收藏成功");
+  } catch (error) {
+    console.error("收藏失败:", error);
+    ElMessage.error("收藏失败，请稍后重试");
+  }
+};
 // 全屏预览相关状态
 const showPreview = ref(false); // 是否显示全屏预览
 const previewImage = ref(""); // 当前预览的图片
@@ -666,6 +687,7 @@ function sanitizeFilename(name: string) {
 }
 
 const download = (value: number) => {
+  if (!ensureAuthenticated()) return;
   let url = "";
   let wallpaper: any = null;
 

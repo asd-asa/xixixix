@@ -1,5 +1,5 @@
-import { get,post,put,patch,upload,del,} from '@/utils/request.js'
-
+import { getServerUrl, get,post,put,patch,upload,del,} from '@/utils/request.js'
+import axios from "axios";
 
 // 上传壁纸
 export function uploadWallpapers(data) {
@@ -14,8 +14,40 @@ export const searchWallpapers = (tags) => {
     return get('wallpapers/wallpapers/search/', { tags });
 };
 //下载壁纸
-export const downloadWallpapers = (id) => {
-    return  (`wallpapers/wallpapers/download/${id}/`);
+export const downloadWallpapers = (id, userrole = '') => {
+    let role = userrole;
+    try {
+        if (!role && typeof window !== 'undefined') {
+            role = localStorage.getItem('username') || '';
+        }
+    } catch (e) {
+        role = role || '';
+    }
+    return post(`wallpapers/wallpapers/download/${id}/`, { userrole: role });
+};
+
+
+export const getDownloadHistory = (page = 1, pageSize = 10, mediaType = '', title = '', tags = '') => {
+    let userrole = '';
+    try {
+        if (typeof window !== 'undefined') {
+            userrole = localStorage.getItem('username') || '';
+        }
+    } catch (e) {
+        userrole = '';
+    }
+    const params = { page, pageSize, userrole };
+    if (mediaType) params.media_type = mediaType;
+    if (title) params.title = title;
+    if (tags) params.tags = tags;
+    return axios.get(`${getServerUrl()}wallpapers/download-history/`, {
+        params,
+    }).then((response) => response.data);
+};
+// 删除下载历史记录
+export const deleteDownloadHistory = (id) => {
+    return axios.delete(`${getServerUrl()}wallpapers/download-history/${id}/`)
+        .then((response) => response.data);
 };
 //删除壁纸
 export const deleteWallpapers = (id) => {
@@ -37,3 +69,12 @@ export const editWallpaper = (id, data) => {
 export const reviewWallpaper = (id, data) => {
     return post(`wallpapers/wallpapers/${id}/review/`, data);
 };
+// 添加收藏（墙纸 ID）
+export function addFavorite(wallpaperId) {
+  return post(`wallpapers/favorite/${wallpaperId}/favorite/`);
+}
+
+// 取消收藏（墙纸 ID）
+export function removeFavorite(wallpaperId) {
+  return del(`wallpapers/favorite/${wallpaperId}/favorite/`);
+}
